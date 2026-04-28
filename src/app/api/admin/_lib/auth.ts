@@ -9,7 +9,7 @@ export async function requireAdmin() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
   );
-  const { data: { user } } = await auth.getUser();
+  const { data: { user } } = await auth.auth.getUser();
   if (!user) return null;
 
   const db = createSupabaseAdmin(
