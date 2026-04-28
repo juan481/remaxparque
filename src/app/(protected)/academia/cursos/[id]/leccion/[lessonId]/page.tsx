@@ -76,8 +76,8 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
                 {modLessons.map((l: Record<string, unknown>) => {
                   const done = completedIds.has(l.id as string);
                   const active = l.id === lessonId;
-                  const lType = l.type as keyof typeof TYPE_META;
-                  const lMeta = TYPE_META[lType] ?? TYPE_META.text;
+                  const lType = (l.type as string) in TYPE_META ? (l.type as keyof typeof TYPE_META) : 'text';
+                  const lMeta = TYPE_META[lType];
                   const LIcon = lMeta.icon;
                   return (
                     <Link key={l.id as string}
