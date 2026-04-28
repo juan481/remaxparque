@@ -16,9 +16,12 @@ function getEmbedUrl(url: string): { embedUrl: string; isIframe: boolean } {
 }
 
 const TYPE_META = {
-  video: { icon: Play,      color: '#7C3AED', bg: 'bg-purple-100', label: 'Video' },
-  pdf:   { icon: FileText,  color: '#ff1200', bg: 'bg-red-100',    label: 'PDF' },
-  text:  { icon: AlignLeft, color: '#0043ff', bg: 'bg-blue-100',   label: 'Lectura' },
+  video: { icon: Play,      color: '#7C3AED', label: 'Video' },
+  pdf:   { icon: FileText,  color: '#ff1200', label: 'PDF' },
+  text:  { icon: AlignLeft, color: '#0043ff', label: 'Lectura' },
+};
+const TYPE_BG: Record<string, string> = {
+  video: 'bg-purple-100', pdf: 'bg-red-100', text: 'bg-blue-100',
 };
 
 export default async function LessonPage({ params }: { params: Promise<{ id: string; lessonId: string }> }) {
@@ -83,7 +86,7 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
                     <Link key={l.id as string}
                       href={`/academia/cursos/${courseId}/leccion/${l.id}`}
                       className={`flex items-center gap-2.5 px-4 py-2.5 text-xs transition-colors ${active ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                      <div className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${done ? 'bg-green-100' : active ? lMeta.bg : 'bg-gray-100'}`}
+                      <div className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${done ? 'bg-green-100' : active ? (TYPE_BG[lType] ?? 'bg-gray-100') : 'bg-gray-100'}`}
                         style={!done && !active ? {} : {}}>
                         {done
                           ? <CheckCircle className="w-3 h-3 text-green-500" />
