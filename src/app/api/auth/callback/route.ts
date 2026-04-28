@@ -6,9 +6,10 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? origin;
 
   if (!code) {
-    return NextResponse.redirect(new URL('/login?error=no_code', origin));
+    return NextResponse.redirect(new URL('/login?error=no_code', siteUrl));
   }
 
   const cookieStore = await cookies();
@@ -22,9 +23,6 @@ export async function GET(request: Request) {
         getAll() { return cookieStore.getAll(); },
         setAll(incoming) {
           incoming.forEach(c => sessionCookies.push(c));
-          incoming.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options as never)
-          );
         },
       },
     }
@@ -33,7 +31,8 @@ export async function GET(request: Request) {
   const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error || !user) {
-    return NextResponse.redirect(new URL('/login?error=exchange_failed', origin));
+    const detail = encodeURIComponent(error?.message ?? 'no_user');
+    return NextResponse.redirect(new URL(`/login?error=exchange_failed&detail=${detail}`, siteUrl));
   }
 
   const admin = createClient(
@@ -57,37 +56,39 @@ export async function GET(request: Request) {
       avatar_url: user.user_metadata?.avatar_url ?? null,
       role: 'pending',
     });
-    await admin.from('analytics_events').insert({
-      user_id: user.id,
-      event_type: 'user_signup',
-    });
+    try {
+      await admin.from('analytics_events').insert({
+        user_id: user.id,
+        event_type: 'user_signup',
+      });
+    } catch (_) {}
     redirectPath = '/pending';
   } else if (profile.role === 'pending') {
     userRole = 'pending';
     redirectPath = '/pending';
   } else {
     userRole = profile.role;
-    await admin.rpc('cache_user_session', {
-      p_user_id: user.id,
-      p_role: profile.role,
-      p_parque: profile.parque ?? 'both',
-    });
+    try {
+      await admin.rpc('cache_user_session', {
+        p_user_id: user.id,
+        p_role: profile.role,
+        p_parque: profile.parque ?? 'both',
+      });
+    } catch (_) {}
     redirectPath = '/dashboard';
   }
 
-  const response = NextResponse.redirect(new URL(redirectPath, origin));
+  const response = NextResponse.redirect(new URL(redirectPath, siteUrl));
 
-  // Session cookies from exchangeCodeForSession
   sessionCookies.forEach(({ name, value, options }) => {
     response.cookies.set(name, value, options as never);
   });
 
-  // Role cookie for the proxy (avoids RLS query on every request)
   response.cookies.set('x-user-role', userRole, {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: 60 * 60 * 24 * 7,
   });
 
   return response;
