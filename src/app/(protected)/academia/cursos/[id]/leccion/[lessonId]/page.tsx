@@ -16,9 +16,9 @@ function getEmbedUrl(url: string): { embedUrl: string; isIframe: boolean } {
 }
 
 const TYPE_META = {
-  video: { icon: Play, color: '#7C3AED', label: 'Video' },
-  pdf: { icon: FileText, color: '#ff1200', label: 'PDF' },
-  text: { icon: AlignLeft, color: '#0043ff', label: 'Lectura' },
+  video: { icon: Play,      color: '#7C3AED', bg: 'bg-purple-100', label: 'Video' },
+  pdf:   { icon: FileText,  color: '#ff1200', bg: 'bg-red-100',    label: 'PDF' },
+  text:  { icon: AlignLeft, color: '#0043ff', bg: 'bg-blue-100',   label: 'Lectura' },
 };
 
 export default async function LessonPage({ params }: { params: Promise<{ id: string; lessonId: string }> }) {
