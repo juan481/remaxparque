@@ -4,6 +4,9 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { BookOpen, Clock, ChevronDown, Play, FileText, AlignLeft, CheckCircle, Lock, ArrowLeft, BarChart2 } from 'lucide-react';
 
+type LessonRow = { id: string; title: string; type: string; module_id: string; sort_order: number; duration_minutes: number | null; };
+type ModuleRow = { id: string; title: string; description: string | null; sort_order: number; lessons: LessonRow[]; };
+
 const DIFF_COLOR: Record<string, string> = { basico: '#059669', intermedio: '#0043ff', avanzado: '#ff1200' };
 const TYPE_META = {
   video: { icon: Play, color: '#7C3AED', label: 'Video' },
@@ -37,17 +40,20 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
     (lessonProgressRes.data ?? []).filter((p: { completed_at: string | null }) => p.completed_at).map((p: { lesson_id: string }) => p.lesson_id)
   );
 
-  const modules = (modulesRes.data ?? []).map((m: Record<string, unknown>) => ({
-    ...m,
-    lessons: lessons.filter((l: Record<string, unknown>) => l.module_id === m.id),
+  const modules: ModuleRow[] = (modulesRes.data ?? []).map((m: LessonRow & { description: string | null }) => ({
+    id: m.id,
+    title: m.title,
+    description: m.description ?? null,
+    sort_order: m.sort_order,
+    lessons: (lessons as LessonRow[]).filter(l => l.module_id === m.id),
   }));
 
   const progress = progressRes.data;
   const pct = progress?.progress_percent ?? 0;
   const isCompleted = !!progress?.completed_at;
 
-  const firstLesson = lessons[0];
-  const nextLesson = lessons.find((l: Record<string, unknown>) => !completedLessonIds.has(l.id as string));
+  const firstLesson = (lessons as LessonRow[])[0];
+  const nextLesson = (lessons as LessonRow[]).find(l => !completedLessonIds.has(l.id));
 
   return (
     <div className="max-w-4xl">
@@ -124,36 +130,35 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
             <p className="text-gray-400">Este curso no tiene lecciones cargadas todav&#237;a.</p>
           </div>
         ) : (
-          modules.map((mod: Record<string, unknown>, idx: number) => {
-            const modLessons = mod.lessons as Record<string, unknown>[];
-            const modCompleted = modLessons.filter(l => completedLessonIds.has(l.id as string)).length;
+          modules.map((mod: ModuleRow, idx: number) => {
+            const modCompleted = mod.lessons.filter(l => completedLessonIds.has(l.id)).length;
             return (
-              <details key={mod.id as string} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group" open>
+              <details key={mod.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group" open>
                 <summary className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-gray-50/50 list-none">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black text-white flex-shrink-0"
                     style={{ background: '#0C2749' }}>
                     {idx + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-black text-sm" style={{ color: '#0C2749' }}>{mod.title as string}</p>
-                    {mod.description && <p className="text-xs text-gray-400 truncate">{mod.description as string}</p>}
+                    <p className="font-black text-sm" style={{ color: '#0C2749' }}>{mod.title}</p>
+                    {mod.description && <p className="text-xs text-gray-400 truncate">{mod.description}</p>}
                   </div>
                   <span className="text-xs text-gray-400 font-bold flex-shrink-0 mr-2">
-                    {modCompleted}/{modLessons.length}
+                    {modCompleted}/{mod.lessons.length}
                   </span>
                   <ChevronDown className="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180 flex-shrink-0" />
                 </summary>
 
                 <div className="border-t border-gray-50 divide-y divide-gray-50">
-                  {modLessons.map((les: Record<string, unknown>) => {
-                    const type = les.type as keyof typeof TYPE_META;
-                    const meta = TYPE_META[type] ?? TYPE_META.text;
+                  {mod.lessons.map((les: LessonRow) => {
+                    const type = les.type in TYPE_META ? les.type as keyof typeof TYPE_META : 'text';
+                    const meta = TYPE_META[type];
                     const Icon = meta.icon;
-                    const done = completedLessonIds.has(les.id as string);
+                    const done = completedLessonIds.has(les.id);
                     return (
-                      <Link key={les.id as string}
+                      <Link key={les.id}
                         href={`/academia/cursos/${id}/leccion/${les.id}`}
-                        className="flex items-center gap-3 px-5 py-3.5 hover:bg-blue-50/30 transition-colors group/les">
+                        className="flex items-center gap-3 px-5 py-3.5 hover:bg-blue-50/30 transition-colors">
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                           style={{ background: done ? '#ECFDF5' : meta.color + '15' }}>
                           {done
@@ -163,11 +168,11 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-medium truncate ${done ? 'text-gray-400 line-through' : ''}`}
                             style={done ? {} : { color: '#0C2749' }}>
-                            {les.title as string}
+                            {les.title}
                           </p>
                           <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
                             <span style={{ color: meta.color }} className="font-bold">{meta.label}</span>
-                            {les.duration_minutes && <span>{les.duration_minutes as number} min</span>}
+                            {les.duration_minutes && <span>{les.duration_minutes} min</span>}
                           </div>
                         </div>
                         {done && <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />}
