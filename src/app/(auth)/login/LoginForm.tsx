@@ -8,9 +8,10 @@ export default function LoginForm() {
 
   async function loginWithGoogle() {
     setLoading(true);
+    const base = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
+      options: { redirectTo: `${base}/api/auth/callback` },
     });
   }
 
