@@ -118,7 +118,7 @@ export default function ProcessAccordion() {
       {SECTIONS.map(section => (
         <section key={section.title}>
           <h2 className="text-lg font-black mb-4" style={{color:'#0C2749'}}>{section.title}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
             {section.items.map(item => {
               const isOpen = openId === item.id;
               const color = BADGE_COLOR[item.badge] ?? '#0043ff';

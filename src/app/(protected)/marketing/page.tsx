@@ -74,8 +74,8 @@ export default function MarketingPage() {
                   <h3 className="font-bold text-sm leading-tight mb-1" style={{color:'#0C2749'}}>{item.title}</h3>
                   <p className="text-xs text-gray-400 mb-4">{item.desc}</p>
                   <a href={item.canvaUrl} target="_blank" rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-2 text-sm font-bold rounded-xl border-2 transition-all duration-200 hover:text-white hover:bg-[#0043ff] hover:border-[#0043ff]"
-                    style={{borderColor:'#0043ff', color:'#0043ff'}}>
+                    className="w-full flex items-center justify-center gap-2 py-2 text-sm font-bold rounded-xl border-2 transition-all duration-200 text-[#0043ff] hover:text-white hover:bg-[#0043ff] hover:border-[#0043ff]"
+                    style={{borderColor:'#0043ff'}}>
                     <ExternalLink className="w-4 h-4" /> Abrir en Canva
                   </a>
                 </div>

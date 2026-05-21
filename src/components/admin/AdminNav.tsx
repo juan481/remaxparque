@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, FileText, BarChart3, LayoutDashboard, Newspaper, Calendar, BookOpen, Megaphone, Library } from 'lucide-react';
+import { Users, FileText, BarChart3, LayoutDashboard, Newspaper, Calendar, BookOpen, Megaphone, Library, ImageIcon } from 'lucide-react';
 
 const SECTIONS = [
   { href: '/admin', label: 'Resumen', icon: LayoutDashboard, exact: true },
@@ -12,6 +12,7 @@ const SECTIONS = [
   { href: '/admin/cursos', label: 'Academia', icon: BookOpen, exact: false },
   { href: '/admin/biblioteca', label: 'Biblioteca', icon: Library, exact: false },
   { href: '/admin/marketing', label: 'Marketing', icon: Megaphone, exact: false },
+  { href: '/admin/banner', label: 'Banner', icon: ImageIcon, exact: false },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3, exact: false },
 ];
 

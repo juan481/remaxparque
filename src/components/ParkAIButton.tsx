@@ -1,19 +1,23 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import ChatInterface from './park-ia/ChatInterface';
 
 export default function ParkAIButton() {
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Don't render on the asistente page — the chat is already fullscreen there
+  if (pathname === '/asistente') return null;
 
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-    const handler = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handler);
-    return () => window.removeEventListener('resize', handler);
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
   }, []);
 
   function handleClick() {
@@ -40,7 +44,7 @@ export default function ParkAIButton() {
             </div>
             <button onClick={() => setOpen(false)}
               className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/25 flex items-center justify-center transition-colors duration-200">
-              <span className="text-white text-sm font-bold">x</span>
+              <span className="text-white text-sm font-bold leading-none">✕</span>
             </button>
           </div>
           <ChatInterface />
@@ -51,7 +55,7 @@ export default function ParkAIButton() {
         className="flex items-center gap-2.5 px-5 py-3.5 rounded-full shadow-2xl text-white font-bold text-base transition-all duration-200 hover:scale-105 active:scale-95"
         style={{ background: 'linear-gradient(135deg,#0C2749,#0043ff)' }}>
         <Sparkles className="w-5 h-5" />
-        <span>{open ? 'Cerrar' : 'Park IA'}</span>
+        <span className="hidden sm:inline">{open ? 'Cerrar' : 'Park IA'}</span>
       </button>
     </div>
   );

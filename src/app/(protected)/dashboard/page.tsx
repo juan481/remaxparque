@@ -1,4 +1,4 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+﻿import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { Search, Megaphone, FileText, Camera, Users, ChevronRight, Flame, Bell } from 'lucide-react';
 import Link from 'next/link';
@@ -23,6 +23,14 @@ export default async function DashboardPage() {
   const { data: profile } = await admin.from('profiles').select('*').eq('id', user!.id).single();
   const { data: recentDocs } = await admin.from('documents').select('id,title,type').eq('status','vigente').order('created_at',{ascending:false}).limit(3);
   const { data: recentNews } = await admin.from('news').select('id,title,created_at').eq('is_published',true).order('created_at',{ascending:false}).limit(3);
+
+  // Fetch active banner for the user's parque
+  const { data: allBanners } = await admin.from('banners').select('*').eq('is_active', true).order('created_at', {ascending:false});
+  const userParque = profile?.parque ?? 'both';
+  const banner = (allBanners ?? []).find((b: {parque_visibility:string}) =>
+    b.parque_visibility === 'both' || b.parque_visibility === userParque
+  ) ?? null;
+
   const firstName = profile?.full_name?.split(' ')[0] ?? 'Agente';
 
   return (
@@ -34,6 +42,19 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-gray-500 text-sm mt-1">Bienvenido a tu hub de RE/MAX Parque</p>
       </div>
+
+      {/* Banner */}
+      {banner && (
+        <div className="mb-6 rounded-2xl overflow-hidden shadow-sm">
+          {banner.link_url ? (
+            <a href={banner.link_url} target="_blank" rel="noopener noreferrer" className="block hover:opacity-95 transition-opacity">
+              <img src={banner.image_url} alt={banner.title ?? 'Anuncio'} className="w-full h-auto max-h-36 object-cover" />
+            </a>
+          ) : (
+            <img src={banner.image_url} alt={banner.title ?? 'Anuncio'} className="w-full h-auto max-h-36 object-cover" />
+          )}
+        </div>
+      )}
 
       {/* Search */}
       <div className="mb-6">
@@ -130,10 +151,10 @@ export default async function DashboardPage() {
             {recentNews && recentNews.length > 0 ? (
               <div className="space-y-2">
                 {recentNews.map(item => (
-                  <div key={item.id} className="py-2 border-b border-gray-50 last:border-0">
-                    <p className="text-sm text-gray-700 truncate">{item.title}</p>
+                  <Link key={item.id} href={`/novedades/${item.id}`} className="block py-2 border-b border-gray-50 last:border-0 hover:text-blue-600 transition-colors group">
+                    <p className="text-sm text-gray-700 truncate group-hover:text-blue-600">{item.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{new Date(item.created_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short'})}</p>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (

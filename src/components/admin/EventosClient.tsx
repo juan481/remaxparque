@@ -1,30 +1,37 @@
 'use client';
 import { useState } from 'react';
-import { Plus, Eye, EyeOff, Calendar } from 'lucide-react';
+import { Plus, Eye, EyeOff, Calendar, Users, X, Download } from 'lucide-react';
 import { createNews, updateNews, deleteNews } from '@/app/(admin)/admin/_actions/news';
 import AdminModal from './AdminModal';
 
 type EventItem = {
   id: string; title: string; content: string | null; urgency: string;
   is_published: boolean; published_at: string | null; created_at: string;
-  drive_url: string | null;
+  drive_url: string | null; image_url: string | null;
 };
 
+type RegCount = { event_id: string; count: number };
+
 const urgColor: Record<string,string> = { urgente:'#ff1200', importante:'#D97706', normal:'#0043ff' };
-const urgBg: Record<string,string> = { urgente:'#FEF2F2', importante:'#FFFBEB', normal:'#EFF6FF' };
+const urgBg: Record<string,string>    = { urgente:'#FEF2F2', importante:'#FFFBEB', normal:'#EFF6FF' };
 const inp = 'w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white';
 const lbl = 'block text-sm font-bold text-gray-700 mb-1.5';
 
-export default function EventosClient({ events }: { events: EventItem[] }) {
+export default function EventosClient({ events, regCounts }: { events: EventItem[]; regCounts: RegCount[] }) {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<EventItem | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [tab, setTab] = useState<'proximos'|'pasados'>('proximos');
+  const [regsModal, setRegsModal] = useState<{eventId:string;title:string}|null>(null);
+  const [regs, setRegs] = useState<{registered_at:string;profiles:{full_name:string|null}}[]>([]);
+  const [loadingRegs, setLoadingRegs] = useState(false);
 
   const now = new Date();
-  const upcoming = events.filter(e => e.published_at && new Date(e.published_at) >= now).length;
-  const past = events.filter(e => !e.published_at || new Date(e.published_at) < now).length;
+  const future = events.filter(e => e.published_at && new Date(e.published_at) >= now);
+  const past   = events.filter(e => !e.published_at || new Date(e.published_at) < now);
 
+  function countFor(id: string) { return regCounts.find(r => r.event_id === id)?.count ?? 0; }
   function openNew() { setEdit(null); setErr(null); setOpen(true); }
   function openEdit(item: EventItem) { setEdit(item); setErr(null); setOpen(true); }
   function close() { setOpen(false); setEdit(null); setErr(null); }
@@ -47,45 +54,81 @@ export default function EventosClient({ events }: { events: EventItem[] }) {
     finally { setBusy(false); }
   }
 
+  async function openRegs(eventId: string, title: string) {
+    setRegsModal({ eventId, title });
+    setLoadingRegs(true);
+    setRegs([]);
+    const res = await fetch(`/api/admin/eventos/${eventId}/registrations`);
+    const data = await res.json();
+    setRegs(data.registrations ?? []);
+    setLoadingRegs(false);
+  }
+
+  function downloadCSV() {
+    if (!regsModal || !regs.length) return;
+    const rows = [
+      'Nombre,Fecha de inscripción',
+      ...regs.map(r => `"${r.profiles?.full_name ?? 'Sin nombre'}","${new Date(r.registered_at).toLocaleString('es-AR')}"`)
+    ].join('\n');
+    const blob = new Blob([rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inscriptos-${regsModal.title.replace(/\s+/g,'-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const toDTL = (iso: string | null) => iso ? iso.slice(0,16) : '';
+  const displayed = tab === 'proximos' ? future : past;
 
   return (
     <div>
       <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-black" style={{color:'#0C2749'}}>Eventos</h1>
-          <p className="text-gray-500 mt-1">Gestion&#225; capacitaciones, reuniones y actividades del equipo</p>
+          <p className="text-gray-500 mt-1">Gestioná capacitaciones, reuniones y actividades del equipo</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 px-6 py-3 text-white font-bold rounded-2xl shadow-lg hover:opacity-90 active:scale-95 transition-all duration-200" style={{background:'linear-gradient(135deg,#0043ff,#0C2749)'}}>
+        <button onClick={openNew} className="flex items-center gap-2 px-6 py-3 text-white font-bold rounded-2xl shadow-lg hover:opacity-90 active:scale-95 transition-all" style={{background:'linear-gradient(135deg,#0043ff,#0C2749)'}}>
           <Plus className="w-5 h-5" /> Nuevo evento
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        {[{label:'Total',value:events.length,color:'#0C2749',bg:'#EFF6FF'},{label:'Próximos',value:upcoming,color:'#059669',bg:'#ECFDF5'},{label:'Pasados',value:past,color:'#9CA3AF',bg:'#F9FAFB'}].map(({label,value,color,bg}) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-center hover:shadow-md transition-all">
-            <p className="text-4xl font-black" style={{color}}>{value}</p>
-            <p className="text-sm font-bold text-gray-500 mt-1">{label}</p>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {[{l:'Total',v:events.length,c:'#0C2749',b:'#EFF6FF'},{l:'Próximos',v:future.length,c:'#059669',b:'#ECFDF5'},{l:'Pasados',v:past.length,c:'#9CA3AF',b:'#F9FAFB'}].map(({l,v,c,b})=>(
+          <div key={l} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-center">
+            <p className="text-4xl font-black" style={{color:c}}>{v}</p>
+            <p className="text-sm font-bold text-gray-500 mt-1">{l}</p>
           </div>
         ))}
       </div>
 
-      {events.length === 0 ? (
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6 bg-white rounded-2xl p-1.5 border border-gray-100 shadow-sm w-fit">
+        {(['proximos','pasados'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            className="px-5 py-2 rounded-xl text-sm font-bold transition-all"
+            style={tab === t ? {background:'#0C2749', color:'#fff'} : {color:'#9CA3AF'}}>
+            {t === 'proximos' ? `Próximos (${future.length})` : `Pasados (${past.length})`}
+          </button>
+        ))}
+      </div>
+
+      {displayed.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
           <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-200" />
-          <h2 className="text-xl font-black mb-2" style={{color:'#0C2749'}}>Sin eventos cargados</h2>
-          <p className="text-gray-400 max-w-sm mx-auto mb-6">Cre&#225; el primer evento para que el equipo pueda inscribirse.</p>
-          <button onClick={openNew} className="px-6 py-3 text-white font-bold rounded-2xl" style={{background:'linear-gradient(135deg,#0043ff,#0C2749)'}}>Crear primer evento</button>
+          <p className="text-gray-400">No hay eventos en esta sección</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {events.map(ev => {
+          {displayed.map(ev => {
             const color = urgColor[ev.urgency] ?? '#0043ff';
-            const bg = urgBg[ev.urgency] ?? '#EFF6FF';
-            const d = ev.published_at ? new Date(ev.published_at) : null;
-            const isUpcoming = d ? d >= now : false;
+            const bg    = urgBg[ev.urgency]    ?? '#EFF6FF';
+            const d     = ev.published_at ? new Date(ev.published_at) : null;
+            const cnt   = countFor(ev.id);
             return (
-              <div key={ev.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-start gap-5 hover:shadow-md transition-all duration-200">
+              <div key={ev.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-start gap-5 hover:shadow-md transition-all">
                 {d ? (
                   <div className="w-16 flex-shrink-0 rounded-2xl overflow-hidden text-center" style={{background:color}}>
                     <div className="py-2">
@@ -102,12 +145,16 @@ export default function EventosClient({ events }: { events: EventItem[] }) {
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div>
                       <h3 className="font-black text-base" style={{color:'#0C2749'}}>{ev.title}</h3>
-                      {ev.content && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{ev.content}</p>}
+                      {ev.content && <p className="text-sm text-gray-500 mt-1 line-clamp-1">{ev.content}</p>}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{background:isUpcoming?'#ECFDF5':'#F9FAFB',color:isUpcoming?'#059669':'#9CA3AF'}}>
-                        {isUpcoming?'Próximo':'Pasado'}
-                      </span>
+                      {tab === 'proximos' && (
+                        <button onClick={() => openRegs(ev.id, ev.title)}
+                          className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
+                          style={{background:'#ECFDF5', color:'#059669'}}>
+                          <Users className="w-3.5 h-3.5" /> {cnt} inscripto{cnt !== 1 ? 's' : ''}
+                        </button>
+                      )}
                       {ev.is_published ? <Eye className="w-4 h-4 text-green-500"/> : <EyeOff className="w-4 h-4 text-gray-400"/>}
                     </div>
                   </div>
@@ -120,11 +167,12 @@ export default function EventosClient({ events }: { events: EventItem[] }) {
         </div>
       )}
 
+      {/* Create/Edit modal */}
       <AdminModal title={edit?'Editar evento':'Nuevo evento'} open={open} onClose={close}>
         <form key={edit?.id??'new'} onSubmit={submit} className="space-y-4">
           <input type="hidden" name="category" value="evento" />
           <div>
-            <label className={lbl}>T&#237;tulo <span className="text-red-500">*</span></label>
+            <label className={lbl}>Título <span className="text-red-500">*</span></label>
             <input name="title" required defaultValue={edit?.title??''} className={inp} placeholder="Ej: Reunión mensual de equipo" />
           </div>
           <div>
@@ -146,7 +194,11 @@ export default function EventosClient({ events }: { events: EventItem[] }) {
             </div>
           </div>
           <div>
-            <label className={lbl}>Link de fotos (Google Drive)</label>
+            <label className={lbl}>Imagen del evento (URL)</label>
+            <input name="image_url" type="url" defaultValue={edit?.image_url??''} className={inp} placeholder="https://..." />
+          </div>
+          <div>
+            <label className={lbl}>Link de materiales / fotos (Google Drive) — para eventos pasados</label>
             <input name="drive_url" type="url" defaultValue={edit?.drive_url??''} className={inp} placeholder="https://drive.google.com/..." />
           </div>
           <div className="flex items-center gap-3">
@@ -165,6 +217,58 @@ export default function EventosClient({ events }: { events: EventItem[] }) {
           </div>
         </form>
       </AdminModal>
+
+      {/* Registrations modal */}
+      {regsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div>
+                <h3 className="font-black text-base" style={{color:'#0C2749'}}>Inscriptos</h3>
+                <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{regsModal.title}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {regs.length > 0 && (
+                  <button onClick={downloadCSV}
+                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-all hover:opacity-80"
+                    style={{background:'#ECFDF5',color:'#059669'}}>
+                    <Download className="w-3.5 h-3.5" /> CSV
+                  </button>
+                )}
+                <button onClick={() => setRegsModal(null)}
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              {loadingRegs ? (
+                <div className="text-center py-8 text-gray-400 text-sm">Cargando...</div>
+              ) : regs.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-10 h-10 mx-auto mb-2 text-gray-200" />
+                  <p className="text-gray-400 text-sm">Nadie se inscribió todavía</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-gray-400 mb-3">{regs.length} persona{regs.length !== 1 ? 's' : ''}</p>
+                  {regs.map((r,i) => (
+                    <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0" style={{background:'#0043ff'}}>
+                        {r.profiles?.full_name?.[0] ?? '?'}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold" style={{color:'#0C2749'}}>{r.profiles?.full_name ?? 'Sin nombre'}</p>
+                        <p className="text-xs text-gray-400">{new Date(r.registered_at).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'})}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

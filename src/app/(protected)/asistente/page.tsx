@@ -1,10 +1,11 @@
-import { Sparkles, ArrowLeft } from 'lucide-react';
+﻿import { Sparkles, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import ChatInterface from '@/components/park-ia/ChatInterface';
 
 export default function AsistentePage() {
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] -mx-4 sm:-mx-6">
+    // Escape layout padding and fill all available vertical space
+    <div className="flex flex-col -mx-4 sm:-mx-6 -mt-6" style={{height:'calc(100svh - 64px)'}}>
       {/* Header */}
       <div className="flex items-center gap-4 px-4 sm:px-6 py-3 border-b border-gray-100 bg-white flex-shrink-0">
         <Link href="/dashboard"
@@ -12,7 +13,7 @@ export default function AsistentePage() {
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#0C2749,#0043ff)' }}>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg,#0C2749,#0043ff)' }}>
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -26,8 +27,8 @@ export default function AsistentePage() {
         </div>
       </div>
 
-      {/* Chat */}
-      <div className="flex-1 min-h-0 max-w-2xl w-full mx-auto flex flex-col w-full">
+      {/* Chat fills all remaining height, no overflow at page level */}
+      <div className="flex-1 min-h-0 flex flex-col max-w-2xl w-full mx-auto">
         <ChatInterface fullPage />
       </div>
     </div>
