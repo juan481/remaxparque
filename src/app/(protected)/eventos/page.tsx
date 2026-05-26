@@ -11,12 +11,15 @@ export default async function EventosPage() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  const { data: profile } = await admin.from('profiles').select('parque').eq('id', user!.id).single();
+
   const [eventsRes, regsRes] = await Promise.all([
     admin
       .from('news')
-      .select('id,title,content,urgency,category,published_at,drive_url,image_url')
+      .select('id,title,content,urgency,category,published_at,drive_url,image_url,location,event_online')
       .eq('is_published', true)
       .eq('category', 'evento')
+      .in('parque_visibility', ['both', profile?.parque ?? 'both'])
       .order('published_at', { ascending: true }),
     admin
       .from('event_registrations')
@@ -33,6 +36,8 @@ export default async function EventosPage() {
     category: e.category ?? undefined,
     drive_url: e.drive_url ?? undefined,
     image_url: e.image_url ?? undefined,
+    location: e.location ?? undefined,
+    event_online: e.event_online ?? false,
   }));
 
   const registeredIds = (regsRes.data ?? []).map(r => r.event_id);

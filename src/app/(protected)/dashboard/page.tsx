@@ -48,10 +48,10 @@ export default async function DashboardPage() {
         <div className="mb-6 rounded-2xl overflow-hidden shadow-sm">
           {banner.link_url ? (
             <a href={banner.link_url} target="_blank" rel="noopener noreferrer" className="block hover:opacity-95 transition-opacity">
-              <img src={banner.image_url} alt={banner.title ?? 'Anuncio'} className="w-full h-auto max-h-36 object-cover" />
+              <img src={banner.image_url} alt={banner.title ?? 'Anuncio'} className="w-full object-cover" style={{aspectRatio:'1920/700'}} />
             </a>
           ) : (
-            <img src={banner.image_url} alt={banner.title ?? 'Anuncio'} className="w-full h-auto max-h-36 object-cover" />
+            <img src={banner.image_url} alt={banner.title ?? 'Anuncio'} className="w-full object-cover" style={{aspectRatio:'1920/700'}} />
           )}
         </div>
       )}

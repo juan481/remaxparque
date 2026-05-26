@@ -1,23 +1,23 @@
 'use client';
-import { useState } from 'react';
-import { Plus, Eye, EyeOff, Calendar, Newspaper } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Eye, EyeOff, Calendar, Newspaper, Upload, X, ImageIcon } from 'lucide-react';
 import { createNews, updateNews, deleteNews } from '@/app/(admin)/admin/_actions/news';
 import AdminModal from './AdminModal';
 
 type NewsItem = {
   id: string; title: string; content: string | null; urgency: string;
   category: string | null; is_published: boolean; published_at: string | null;
-  created_at: string; image_url: string | null;
+  created_at: string; image_url: string | null; parque_visibility: string;
 };
 
 const CATS = [
-  { value: 'general', label: 'General' },
-  { value: 'ventas', label: 'Ventas' },
-  { value: 'alquileres', label: 'Alquileres' },
-  { value: 'legal', label: 'Legal / UIF' },
-  { value: 'marketing', label: 'Marketing' },
-  { value: 'administracion', label: 'Administraci&oacute;n' },
-  { value: 'capacitacion', label: 'Capacitaci&oacute;n' },
+  { value: 'general',        label: 'General' },
+  { value: 'ventas',         label: 'Ventas' },
+  { value: 'alquileres',     label: 'Alquileres' },
+  { value: 'legal',          label: 'Legal / UIF' },
+  { value: 'marketing',      label: 'Marketing' },
+  { value: 'administracion', label: 'Administración' },
+  { value: 'capacitacion',   label: 'Capacitación' },
 ];
 
 const urgColor: Record<string,string> = { urgente:'#ff1200', importante:'#D97706', normal:'#0043ff' };
@@ -28,22 +28,43 @@ const inp = 'w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:
 const lbl = 'block text-sm font-bold text-gray-700 mb-1.5';
 
 export default function NovedadesClient({ news }: { news: NewsItem[] }) {
-  const [open, setOpen] = useState(false);
-  const [edit, setEdit] = useState<NewsItem | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr]   = useState<string | null>(null);
+  const [open, setOpen]   = useState(false);
+  const [edit, setEdit]   = useState<NewsItem | null>(null);
+  const [busy, setBusy]   = useState(false);
+  const [err, setErr]     = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const published = news.filter(n => n.is_published).length;
   const drafts    = news.filter(n => !n.is_published).length;
 
-  function openNew()  { setEdit(null); setErr(null); setOpen(true); }
-  function openEdit(item: NewsItem) { setEdit(item); setErr(null); setOpen(true); }
-  function close()    { setOpen(false); setEdit(null); setErr(null); }
+  function openNew()  { setEdit(null); setErr(null); setPreviewUrl(null); setOpen(true); }
+  function openEdit(item: NewsItem) { setEdit(item); setErr(null); setPreviewUrl(item.image_url); setOpen(true); }
+  function close()    { setOpen(false); setEdit(null); setErr(null); setPreviewUrl(null); }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPreviewUrl(URL.createObjectURL(file));
+  }
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
       const fd = new FormData(e.currentTarget);
+      const file = fileRef.current?.files?.[0];
+      let imageUrl = edit?.image_url ?? '';
+
+      if (file) {
+        const uploadFd = new FormData();
+        uploadFd.set('file', file);
+        const res = await fetch('/api/admin/novedades/upload', { method: 'POST', body: uploadFd });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? 'Error al subir la imagen');
+        imageUrl = json.url;
+      }
+
+      fd.set('image_url', imageUrl);
       edit ? await updateNews(edit.id, fd) : await createNews(fd);
       close();
     } catch(ex) { setErr(ex instanceof Error ? ex.message : 'Error inesperado'); }
@@ -58,9 +79,9 @@ export default function NovedadesClient({ news }: { news: NewsItem[] }) {
     finally { setBusy(false); }
   }
 
-  const fmt    = (iso: string) => new Date(iso).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'});
-  const toDTL  = (iso: string | null) => iso ? iso.slice(0,16) : '';
-  const catLabel = (val: string | null) => CATS.find(c => c.value === val)?.label.replace(/&[a-z]+;/g,'ó') ?? val ?? '—';
+  const fmt      = (iso: string) => new Date(iso).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'});
+  const toDTL    = (iso: string | null) => iso ? iso.slice(0,16) : '';
+  const catLabel = (val: string | null) => CATS.find(c => c.value === val)?.label ?? val ?? '—';
 
   return (
     <div>
@@ -78,9 +99,9 @@ export default function NovedadesClient({ news }: { news: NewsItem[] }) {
 
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          {label:'Total',    value:news.length, color:'#0C2749'},
-          {label:'Publicadas',value:published,  color:'#059669'},
-          {label:'Borradores',value:drafts,     color:'#D97706'},
+          {label:'Total',     value:news.length, color:'#0C2749'},
+          {label:'Publicadas',value:published,   color:'#059669'},
+          {label:'Borradores',value:drafts,      color:'#D97706'},
         ].map(({label,value,color}) => (
           <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-center">
             <p className="text-4xl font-black" style={{color}}>{value}</p>
@@ -92,8 +113,8 @@ export default function NovedadesClient({ news }: { news: NewsItem[] }) {
       {news.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
           <Newspaper className="w-16 h-16 mx-auto mb-4 text-gray-200" />
-          <h2 className="text-xl font-black mb-2" style={{color:'#0C2749'}}>Sin novedades todav&#237;a</h2>
-          <p className="text-gray-400 max-w-sm mx-auto mb-6">Cre&#225; la primera nota para el equipo.</p>
+          <h2 className="text-xl font-black mb-2" style={{color:'#0C2749'}}>Sin novedades todavía</h2>
+          <p className="text-gray-400 max-w-sm mx-auto mb-6">Creá la primera nota para el equipo.</p>
           <button onClick={openNew} className="px-6 py-3 text-white font-bold rounded-2xl" style={{background:'#0043ff'}}>
             Crear primera nota
           </button>
@@ -101,9 +122,9 @@ export default function NovedadesClient({ news }: { news: NewsItem[] }) {
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-gray-100 text-xs font-bold uppercase tracking-wider text-gray-400">
-            <div className="col-span-5">T&#237;tulo</div>
+            <div className="col-span-5">Título</div>
             <div className="col-span-2">Tipo</div>
-            <div className="col-span-2">Categor&#237;a</div>
+            <div className="col-span-2">Categoría</div>
             <div className="col-span-2">Estado</div>
             <div className="col-span-1" />
           </div>
@@ -134,7 +155,7 @@ export default function NovedadesClient({ news }: { news: NewsItem[] }) {
                   </span>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-sm text-gray-600 font-medium capitalize">{catLabel(item.category)}</span>
+                  <span className="text-sm text-gray-600 font-medium">{catLabel(item.category)}</span>
                 </div>
                 <div className="col-span-2">
                   {item.is_published
@@ -158,14 +179,14 @@ export default function NovedadesClient({ news }: { news: NewsItem[] }) {
       <AdminModal title={edit ? 'Editar nota' : 'Nueva nota'} open={open} onClose={close} size="lg">
         <form key={edit?.id ?? 'new'} onSubmit={submit} className="space-y-4">
           <div>
-            <label className={lbl}>T&#237;tulo <span className="text-red-500">*</span></label>
+            <label className={lbl}>Título <span className="text-red-500">*</span></label>
             <input name="title" required defaultValue={edit?.title ?? ''} className={inp}
-              placeholder="Ej: Actualizaci&#243;n de formularios UIF" />
+              placeholder="Ej: Actualización de formularios UIF" />
           </div>
           <div>
             <label className={lbl}>Contenido</label>
             <textarea name="content" rows={5} defaultValue={edit?.content ?? ''} className={inp + ' resize-y'}
-              placeholder="Escrib&#237; el contenido completo de la nota aqu&#237;..." />
+              placeholder="Escribí el contenido completo de la nota acá..." />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -177,30 +198,61 @@ export default function NovedadesClient({ news }: { news: NewsItem[] }) {
               </select>
             </div>
             <div>
-              <label className={lbl}>Categor&#237;a</label>
+              <label className={lbl}>Categoría</label>
               <select name="category" defaultValue={edit?.category ?? 'general'} className={inp}>
-                {CATS.map(c => (
-                  <option key={c.value} value={c.value} dangerouslySetInnerHTML={{__html: c.label}} />
-                ))}
+                {CATS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
           </div>
+
+          {/* Image upload */}
           <div>
-            <label className={lbl}>Imagen de portada (URL)</label>
-            <input name="image_url" type="url" defaultValue={edit?.image_url ?? ''} className={inp}
-              placeholder="https://... (opcional, para mostrar en la card)" />
+            <label className={lbl}>Imagen de portada</label>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+            {previewUrl ? (
+              <div className="relative rounded-xl overflow-hidden border border-gray-200 mb-2">
+                <img src={previewUrl} alt="Preview" className="w-full h-36 object-cover" />
+                <button type="button"
+                  onClick={() => { setPreviewUrl(null); if (fileRef.current) fileRef.current.value = ''; }}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition-colors">
+                  <X className="w-3.5 h-3.5 text-white" />
+                </button>
+              </div>
+            ) : (
+              <div className="w-full h-24 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center bg-gray-50 mb-2">
+                <ImageIcon className="w-6 h-6 text-gray-300 mr-2" />
+                <span className="text-sm text-gray-400">Sin imagen seleccionada</span>
+              </div>
+            )}
+            <button type="button" onClick={() => fileRef.current?.click()}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-bold transition-all hover:bg-[#0043ff] hover:text-white hover:border-[#0043ff]"
+              style={{borderColor:'#0043ff', color:'#0043ff'}}>
+              <Upload className="w-4 h-4" />
+              {previewUrl ? 'Cambiar imagen' : 'Subir imagen de portada'}
+            </button>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={lbl}>Fecha de publicaci&#243;n</label>
+              <label className={lbl}>Visibilidad por parque</label>
+              <select name="parque_visibility" defaultValue={edit?.parque_visibility ?? 'both'} className={inp}>
+                <option value="both">Ambos parques</option>
+                <option value="parque1">Solo RE/MAX Parque 1</option>
+                <option value="parque3">Solo RE/MAX Parque 3</option>
+              </select>
+            </div>
+            <div>
+              <label className={lbl}>Fecha de publicación</label>
               <input name="published_at" type="datetime-local" defaultValue={toDTL(edit?.published_at ?? null)} className={inp} />
             </div>
-            <div className="flex items-center gap-3 pt-7">
-              <input name="is_published" type="checkbox" id="np_pub" value="on"
-                defaultChecked={edit?.is_published ?? false} className="w-4 h-4 rounded accent-blue-600" />
-              <label htmlFor="np_pub" className="text-sm font-bold text-gray-700">Publicar ahora</label>
-            </div>
           </div>
+
+          <div className="flex items-center gap-3">
+            <input name="is_published" type="checkbox" id="np_pub" value="on"
+              defaultChecked={edit?.is_published ?? false} className="w-4 h-4 rounded accent-blue-600" />
+            <label htmlFor="np_pub" className="text-sm font-bold text-gray-700">Publicar ahora (visible para el equipo)</label>
+          </div>
+
           {err && <p className="text-sm text-red-600 font-medium bg-red-50 px-4 py-2.5 rounded-xl">{err}</p>}
           <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
             {edit && (

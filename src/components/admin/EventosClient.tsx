@@ -8,12 +8,16 @@ type EventItem = {
   id: string; title: string; content: string | null; urgency: string;
   is_published: boolean; published_at: string | null; created_at: string;
   drive_url: string | null; image_url: string | null;
+  location: string | null; event_online: boolean; parque_visibility: string;
 };
 
 type RegCount = { event_id: string; count: number };
 
-const urgColor: Record<string,string> = { urgente:'#ff1200', importante:'#D97706', normal:'#0043ff' };
-const urgBg: Record<string,string>    = { urgente:'#FEF2F2', importante:'#FFFBEB', normal:'#EFF6FF' };
+const catColor: Record<string,string> = { ventas:'#0043ff', capacitacion:'#7C3AED', otras:'#059669' };
+const catBg: Record<string,string>    = { ventas:'#EFF6FF', capacitacion:'#F5F3FF', otras:'#ECFDF5' };
+const catLabel: Record<string,string> = { ventas:'Ventas', capacitacion:'Capacitación', otras:'Otras' };
+const urgColor = catColor;
+const urgBg    = catBg;
 const inp = 'w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white';
 const lbl = 'block text-sm font-bold text-gray-700 mb-1.5';
 
@@ -123,8 +127,8 @@ export default function EventosClient({ events, regCounts }: { events: EventItem
       ) : (
         <div className="space-y-4">
           {displayed.map(ev => {
-            const color = urgColor[ev.urgency] ?? '#0043ff';
-            const bg    = urgBg[ev.urgency]    ?? '#EFF6FF';
+            const color = catColor[ev.urgency] ?? '#0043ff';
+            const bg    = catBg[ev.urgency]    ?? '#EFF6FF';
             const d     = ev.published_at ? new Date(ev.published_at) : null;
             const cnt   = countFor(ev.id);
             return (
@@ -185,17 +189,33 @@ export default function EventosClient({ events, regCounts }: { events: EventItem
               <input name="published_at" type="datetime-local" required defaultValue={toDTL(edit?.published_at??null)} className={inp} />
             </div>
             <div>
-              <label className={lbl}>Prioridad</label>
-              <select name="urgency" defaultValue={edit?.urgency??'normal'} className={inp}>
-                <option value="normal">Normal</option>
-                <option value="importante">Importante</option>
-                <option value="urgente">Urgente</option>
+              <label className={lbl}>Categoría</label>
+              <select name="urgency" defaultValue={edit?.urgency??'ventas'} className={inp}>
+                <option value="ventas">Ventas</option>
+                <option value="capacitacion">Capacitación</option>
+                <option value="otras">Otras</option>
               </select>
             </div>
           </div>
           <div>
             <label className={lbl}>Imagen del evento (URL)</label>
             <input name="image_url" type="url" defaultValue={edit?.image_url??''} className={inp} placeholder="https://..." />
+          </div>
+          <div>
+            <label className={lbl}>Visibilidad por parque</label>
+            <select name="parque_visibility" defaultValue={edit?.parque_visibility??'both'} className={inp}>
+              <option value="both">Ambos parques</option>
+              <option value="parque1">Solo RE/MAX Parque 1</option>
+              <option value="parque3">Solo RE/MAX Parque 3</option>
+            </select>
+          </div>
+          <div>
+            <label className={lbl}>Ubicación</label>
+            <input name="location" defaultValue={edit?.location??''} className={inp} placeholder="Ej: Oficina Parque 1, Salón 3er piso..." />
+          </div>
+          <div className="flex items-center gap-3">
+            <input name="event_online" type="checkbox" id="ev_online" value="on" defaultChecked={edit?.event_online??false} className="w-4 h-4 rounded accent-blue-600" />
+            <label htmlFor="ev_online" className="text-sm font-bold text-gray-700">Evento Online</label>
           </div>
           <div>
             <label className={lbl}>Link de materiales / fotos (Google Drive) — para eventos pasados</label>

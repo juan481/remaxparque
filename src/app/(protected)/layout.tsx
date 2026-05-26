@@ -19,7 +19,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen flex flex-col" style={{background:'#f7f5ee'}}>
       <NavBar profile={profile} />
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {children}
       </main>
       <footer className="bg-white border-t border-gray-100 py-4 px-6 mt-8">

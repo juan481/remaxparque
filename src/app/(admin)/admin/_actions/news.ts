@@ -11,6 +11,7 @@ function admin() {
 
 export async function createNews(formData: FormData) {
   const pub = formData.get('is_published');
+  const online = formData.get('event_online');
   const { error } = await admin().from('news').insert({
     title: formData.get('title') as string,
     content: (formData.get('content') as string) || null,
@@ -20,6 +21,9 @@ export async function createNews(formData: FormData) {
     published_at: (formData.get('published_at') as string) || null,
     drive_url: (formData.get('drive_url') as string) || null,
     image_url: (formData.get('image_url') as string) || null,
+    location: (formData.get('location') as string) || null,
+    event_online: online === 'true' || online === 'on',
+    parque_visibility: (formData.get('parque_visibility') as string) || 'both',
   });
   if (error) throw new Error(error.message);
   revalidatePath('/admin/novedades');
@@ -28,6 +32,7 @@ export async function createNews(formData: FormData) {
 
 export async function updateNews(id: string, formData: FormData) {
   const pub = formData.get('is_published');
+  const online = formData.get('event_online');
   const { error } = await admin().from('news').update({
     title: formData.get('title') as string,
     content: (formData.get('content') as string) || null,
@@ -37,6 +42,9 @@ export async function updateNews(id: string, formData: FormData) {
     published_at: (formData.get('published_at') as string) || null,
     drive_url: (formData.get('drive_url') as string) || null,
     image_url: (formData.get('image_url') as string) || null,
+    location: (formData.get('location') as string) || null,
+    event_online: online === 'true' || online === 'on',
+    parque_visibility: (formData.get('parque_visibility') as string) || 'both',
   }).eq('id', id);
   if (error) throw new Error(error.message);
   revalidatePath('/admin/novedades');

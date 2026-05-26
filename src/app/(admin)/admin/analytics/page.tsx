@@ -17,11 +17,16 @@ export default async function AnalyticsPage() {
   const p3Sessions = (sessions30.data ?? []).filter((e:{parque:string|null}) => e.parque === 'parque3').length;
   const totalSessions = p1Sessions + p3Sessions || 1;
 
+  const activeCount = activeUsers7.count ?? 0;
+  const downloadsCount = downloads7.count ?? 0;
+  const totalCount = totalUsers.count ?? 0;
+  const sessionsCount = (sessions30.data ?? []).length;
+
   const kpis = [
-    { label:'Usuarios activos', sub:'Ultimos 7 dias', value: activeUsers7.count ?? 0, icon: Users, color:'#0043ff', bg:'#EFF6FF', trend:'+12%' },
-    { label:'Descargas', sub:'Ultimos 7 dias', value: downloads7.count ?? 0, icon: Download, color:'#059669', bg:'#ECFDF5', trend:'+5%' },
-    { label:'Total equipo', sub:'Usuarios activos', value: totalUsers.count ?? 0, icon: Activity, color:'#7C3AED', bg:'#F5F3FF', trend:'' },
-    { label:'Sesiones 30 dias', sub:'Ambos parques', value: (sessions30.data ?? []).length, icon: TrendingUp, color:'#D97706', bg:'#FFFBEB', trend:'' },
+    { label:'Usuarios activos', sub:'Últimos 7 días', value: activeCount, icon: Users, color:'#0043ff', bg:'#EFF6FF', trend: activeCount > 0 ? `${activeCount} esta semana` : '' },
+    { label:'Descargas', sub:'Últimos 7 días', value: downloadsCount, icon: Download, color:'#059669', bg:'#ECFDF5', trend: downloadsCount > 0 ? `${downloadsCount} docs` : '' },
+    { label:'Total equipo', sub:'Usuarios activos', value: totalCount, icon: Activity, color:'#7C3AED', bg:'#F5F3FF', trend:'' },
+    { label:'Sesiones 30 días', sub:'Ambos parques', value: sessionsCount, icon: TrendingUp, color:'#D97706', bg:'#FFFBEB', trend:'' },
   ];
 
   return (
