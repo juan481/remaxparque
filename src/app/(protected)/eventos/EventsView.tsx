@@ -6,6 +6,7 @@ import {
   X, MapPin, Mail, Wifi,
 } from 'lucide-react';
 import { inscribirseAEvento, cancelarInscripcion } from './_actions';
+import SectionSearchBar from '@/components/shared/SectionSearchBar';
 
 interface Event {
   id: string; title: string; content: string | null;
@@ -31,6 +32,7 @@ const DAYS_ES = ['Lu','Ma','Mi','Ju','Vi','Sa','Do'];
 
 export default function EventsView({ events, userId, registeredIds }: Props) {
   const [tab, setTab] = useState<'proximos' | 'pasados'>('proximos');
+  const [searchQuery, setSearchQuery] = useState('');
   const [calMonth, setCalMonth] = useState(() => {
     const n = new Date();
     return new Date(n.getFullYear(), n.getMonth(), 1);
@@ -39,10 +41,20 @@ export default function EventsView({ events, userId, registeredIds }: Props) {
   const [registeredSet, setRegisteredSet] = useState(() => new Set(registeredIds));
 
   const now = new Date();
-  const future = events
+
+  // Filter events by search query
+  const filteredEvents = searchQuery.length >= 2
+    ? events.filter(e =>
+        e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (e.content ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (e.location ?? '').toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : events;
+
+  const future = filteredEvents
     .filter(e => new Date(e.date) >= now)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const past = events
+  const past = filteredEvents
     .filter(e => new Date(e.date) < now)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -146,6 +158,17 @@ export default function EventsView({ events, userId, registeredIds }: Props) {
 
       {/* Events list */}
       <div className="flex-1 min-w-0">
+        {/* Search — scoped to Eventos */}
+        <SectionSearchBar
+          placeholder="Buscar eventos, capacitaciones..."
+          onSearch={setSearchQuery}
+          quickTags={[
+            { label: 'Ventas', value: 'ventas' },
+            { label: 'Capacitación', value: 'capacitacion' },
+            { label: 'Online', value: 'online' },
+          ]}
+        />
+
         <div className="flex gap-2 mb-6 bg-white rounded-2xl p-1.5 border border-gray-100 shadow-sm w-fit">
           {(['proximos', 'pasados'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}

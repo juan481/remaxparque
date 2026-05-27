@@ -1,7 +1,8 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
-import { Newspaper, Calendar } from 'lucide-react';
+import { Newspaper, Calendar, Search } from 'lucide-react';
 import Link from 'next/link';
+import SectionSearchBar from '@/components/shared/SectionSearchBar';
 
 type NewsRow = {
   id: string; title: string; content: string | null; urgency: string;
@@ -13,7 +14,14 @@ const urgColor: Record<string,string>  = { urgente:'#ff1200', importante:'#D9770
 const urgBg: Record<string,string>     = { urgente:'#FEF2F2', importante:'#FFFBEB', normal:'#EFF6FF' };
 const urgLabel: Record<string,string>  = { urgente:'Urgente', importante:'Importante', normal:'Novedad' };
 
-export default async function NovedadesPage() {
+export default async function NovedadesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const query = (q ?? '').trim();
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -25,13 +33,19 @@ export default async function NovedadesPage() {
   const { data: profile } = await admin.from('profiles').select('parque').eq('id', user!.id).single();
   const userParque = profile?.parque ?? 'both';
 
-  const { data: news } = await admin
+  let newsQuery = admin
     .from('news')
     .select('id,title,content,urgency,category,published_at,created_at,image_url')
     .eq('is_published', true)
     .neq('category', 'evento')
     .in('parque_visibility', ['both', userParque])
     .order('published_at', { ascending: false });
+
+  if (query.length >= 2) {
+    newsQuery = newsQuery.or(`title.ilike.%${query}%,content.ilike.%${query}%`);
+  }
+
+  const { data: news } = await newsQuery;
 
   const items: NewsRow[] = news ?? [];
 
@@ -45,18 +59,48 @@ export default async function NovedadesPage() {
     return (Date.now() - new Date(ref).getTime()) < 7 * 24 * 60 * 60 * 1000;
   }
 
+  const quickTags = [
+    { label: 'Urgente',    value: 'urgente' },
+    { label: 'Esta semana', value: '' },
+    { label: 'Marketing',  value: 'marketing' },
+  ];
+
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-4">
         <h1 className="text-2xl font-bold" style={{color:'#0C2749'}}>Novedades</h1>
         <p className="text-gray-500 text-sm mt-1">Noticias, actualizaciones y comunicados del equipo</p>
       </div>
 
+      {/* Search — scoped to Novedades */}
+      <SectionSearchBar
+        placeholder="Buscar novedades y comunicados..."
+        defaultValue={query}
+        quickTags={quickTags}
+      />
+
+      {query.length >= 2 && (
+        <p className="text-sm text-gray-500 mb-4">
+          {items.length === 0
+            ? `Sin resultados para "${query}" en Novedades`
+            : `${items.length} resultado${items.length !== 1 ? 's' : ''} en Novedades para "${query}"`
+          }
+        </p>
+      )}
+
       {items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
-          <Newspaper className="w-16 h-16 mx-auto mb-4 text-gray-200" />
-          <h2 className="text-xl font-bold mb-2" style={{color:'#0C2749'}}>Sin novedades publicadas</h2>
-          <p className="text-gray-400 max-w-sm mx-auto">Cuando el equipo publique novedades van a aparecer acá.</p>
+          {query ? (
+            <Search className="w-16 h-16 mx-auto mb-4 text-gray-200" />
+          ) : (
+            <Newspaper className="w-16 h-16 mx-auto mb-4 text-gray-200" />
+          )}
+          <h2 className="text-xl font-bold mb-2" style={{color:'#0C2749'}}>
+            {query ? `Sin resultados para "${query}"` : 'Sin novedades publicadas'}
+          </h2>
+          <p className="text-gray-400 max-w-sm mx-auto">
+            {query ? 'Intentá con otras palabras clave.' : 'Cuando el equipo publique novedades van a aparecer acá.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

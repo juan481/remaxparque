@@ -1,18 +1,52 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
-import { BookOpen, Clock, Play, CheckCircle } from 'lucide-react';
+import { BookOpen, Clock, Play, CheckCircle, Search } from 'lucide-react';
 import Link from 'next/link';
+import SectionSearchBar from '@/components/shared/SectionSearchBar';
 
 const CATS = ['Todos','Ventas','Alquileres','UIF','Herramientas digitales','Liderazgo'];
 const DIFF_COLOR: Record<string,string> = { basico:'#059669', intermedio:'#0043ff', avanzado:'#ff1200' };
 
-export default async function AcademiaPage() {
+export default async function AcademiaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; cat?: string }>;
+}) {
+  const { q, cat } = await searchParams;
+  const query = (q ?? '').trim();
+  const activecat = cat ?? 'Todos';
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const admin = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const { data: courses } = await admin.from('courses').select('id,title,description,difficulty,duration_minutes,instructor,thumbnail_url').eq('is_published', true).order('created_at', { ascending: false });
-  const { data: progress } = await admin.from('course_progress').select('course_id,progress_percent,completed_at').eq('user_id', user!.id);
+
+  // Build course query — scoped to Academia section
+  let coursesQuery = admin
+    .from('courses')
+    .select('id,title,description,difficulty,duration_minutes,instructor,thumbnail_url,category')
+    .eq('is_published', true)
+    .order('created_at', { ascending: false });
+
+  if (query.length >= 2) {
+    coursesQuery = coursesQuery.or(`title.ilike.%${query}%,description.ilike.%${query}%`);
+  }
+  if (activecat !== 'Todos') {
+    coursesQuery = coursesQuery.ilike('category', activecat);
+  }
+
+  const { data: courses } = await coursesQuery;
+  const { data: progress } = await admin
+    .from('course_progress')
+    .select('course_id,progress_percent,completed_at')
+    .eq('user_id', user!.id);
   const progressMap = Object.fromEntries((progress ?? []).map(p => [p.course_id, p]));
+
+  const quickTags = [
+    { label: 'Ventas', value: 'Ventas' },
+    { label: 'Alquileres', value: 'Alquileres' },
+    { label: 'UIF', value: 'UIF' },
+    { label: 'Herramientas', value: 'Herramientas digitales' },
+  ];
 
   return (
     <div>
@@ -27,10 +61,17 @@ export default async function AcademiaPage() {
         </Link>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="text-2xl font-bold" style={{color:'#0C2749'}}>Academia</h1>
         <p className="text-gray-500 text-sm mt-1">Capacitaciones y cursos para potenciar tu carrera</p>
       </div>
+
+      {/* Search — scoped to Academia */}
+      <SectionSearchBar
+        placeholder="Buscar cursos y capacitaciones..."
+        defaultValue={query}
+        quickTags={quickTags}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -51,14 +92,35 @@ export default async function AcademiaPage() {
         ))}
       </div>
 
-      {/* Category filters */}
+      {/* Category filters — link-based so they work with server rendering */}
       <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
-        {CATS.map(cat => (
-          <button key={cat} className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-all first:text-white first:border-transparent" style={cat === 'Todos' ? {background:'#0C2749', color:'white', border:'none'} : {background:'white', color:'#374151', borderColor:'#E5E7EB'}}>
-            {cat}
-          </button>
-        ))}
+        {CATS.map(cat => {
+          const isActive = cat === activecat;
+          const href = cat === 'Todos'
+            ? `/academia${query ? `?q=${encodeURIComponent(query)}` : ''}`
+            : `/academia?cat=${encodeURIComponent(cat)}${query ? `&q=${encodeURIComponent(query)}` : ''}`;
+          return (
+            <Link key={cat} href={href}
+              className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-all"
+              style={isActive
+                ? {background:'#0C2749', color:'white', borderColor:'#0C2749'}
+                : {background:'white', color:'#374151', borderColor:'#E5E7EB'}
+              }>
+              {cat}
+            </Link>
+          );
+        })}
       </div>
+
+      {/* Results */}
+      {query.length >= 2 && (
+        <p className="text-sm text-gray-500 mb-4">
+          {(courses ?? []).length === 0
+            ? `Sin resultados para "${query}" en Academia`
+            : `${(courses ?? []).length} resultado${(courses ?? []).length !== 1 ? 's' : ''} en Academia para "${query}"`
+          }
+        </p>
+      )}
 
       {courses && courses.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -68,7 +130,6 @@ export default async function AcademiaPage() {
             const done = !!prog?.completed_at;
             return (
               <Link key={course.id} href={`/academia/cursos/${course.id}`} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 overflow-hidden group block">
-                {/* Thumbnail */}
                 <div className="h-32 flex items-center justify-center relative overflow-hidden" style={{background:'#0C2749'}}>
                   {course.thumbnail_url
                     ? <img src={course.thumbnail_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80" />
@@ -99,7 +160,7 @@ export default async function AcademiaPage() {
                       <div className="h-1.5 bg-gray-100 rounded-full"><div className="h-full rounded-full" style={{width:`${pct}%`, background:'#0043ff'}} /></div>
                     </div>
                   )}
-                  <div className="w-full py-2 text-sm font-medium rounded-xl text-white text-center transition-all hover:opacity-90" style={{background: done ? '#059669' : '#0043ff'}}>
+                  <div className="w-full py-2 text-sm font-medium rounded-xl text-white text-center" style={{background: done ? '#059669' : '#0043ff'}}>
                     {done ? 'Ver de nuevo' : pct > 0 ? 'Continuar' : 'Comenzar'}
                   </div>
                 </div>
@@ -109,9 +170,19 @@ export default async function AcademiaPage() {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
-          <BookOpen className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-          <h3 className="font-semibold text-gray-600 mb-2">Pr&#243;ximamente</h3>
-          <p className="text-sm text-gray-400 max-w-sm mx-auto">Los cursos y capacitaciones estar&#225;n disponibles muy pronto.</p>
+          {query ? (
+            <>
+              <Search className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+              <h3 className="font-semibold text-gray-600 mb-2">Sin resultados en Academia</h3>
+              <p className="text-sm text-gray-400">Intentá con otras palabras clave</p>
+            </>
+          ) : (
+            <>
+              <BookOpen className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+              <h3 className="font-semibold text-gray-600 mb-2">Próximamente</h3>
+              <p className="text-sm text-gray-400 max-w-sm mx-auto">Los cursos y capacitaciones estarán disponibles muy pronto.</p>
+            </>
+          )}
         </div>
       )}
     </div>

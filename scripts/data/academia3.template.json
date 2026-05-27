@@ -1,0 +1,41 @@
+[
+  {
+    "title": "Inducción General - Bienvenida a RE/MAX Parque",
+    "description": "Primer contacto con la cultura, valores y estructura de RE/MAX Parque. Ideal para nuevos agentes del Parque 3.",
+    "category": "Inducción",
+    "difficulty": "basico",
+    "duration_minutes": 45,
+    "instructor": "Nombre del instructor",
+    "video_url": "https://drive.google.com/file/d/TU_ID_AQUI/view",
+    "pdf_url": null,
+    "thumbnail_url": null,
+    "is_published": true,
+    "parque": "parque3"
+  },
+  {
+    "title": "Proceso de Ventas Parque 3 - Módulo 1",
+    "description": "Captación de propiedades, tasación y presentación del servicio RE/MAX para la operatoria del Parque 3.",
+    "category": "Ventas",
+    "difficulty": "basico",
+    "duration_minutes": 60,
+    "instructor": "Nombre del instructor",
+    "video_url": "https://drive.google.com/file/d/TU_ID_AQUI/view",
+    "pdf_url": "https://drive.google.com/file/d/TU_PDF_AQUI/view",
+    "thumbnail_url": null,
+    "is_published": true,
+    "parque": "parque3"
+  },
+  {
+    "title": "Alquileres - Marco Legal Parque 3",
+    "description": "Contratos, índices, depósitos y procesos de alquiler específicos para la jurisdicción del Parque 3.",
+    "category": "Alquileres",
+    "difficulty": "intermedio",
+    "duration_minutes": 50,
+    "instructor": "Nombre del instructor",
+    "video_url": null,
+    "pdf_url": "https://drive.google.com/file/d/TU_PDF_AQUI/view",
+    "thumbnail_url": null,
+    "is_published": true,
+    "parque": "parque3"
+  }
+]

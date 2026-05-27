@@ -1,42 +1,78 @@
-﻿import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { Mail, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import ProcessAccordion from '@/components/ProcessAccordion';
+import SectionSearchBar from '@/components/shared/SectionSearchBar';
 
-export default async function DirectorioPage() {
+export default async function DirectorioPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const query = (q ?? '').trim();
+
   const admin = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  // Staff always shown (no search filter — small list)
   const { data: staff } = await admin
     .from('profiles')
     .select('id, full_name, avatar_url, role, department, parque')
     .in('role', ['staff', 'admin'])
     .order('created_at', { ascending: true });
 
-  const { data: agents } = await admin
+  // Agents — filter by name if searching
+  let agentsQuery = admin
     .from('profiles')
     .select('id, full_name, avatar_url, role, parque')
     .eq('role', 'agent')
     .order('full_name', { ascending: true });
 
+  if (query.length >= 2) {
+    agentsQuery = agentsQuery.ilike('full_name', `%${query}%`);
+  }
+  const { data: agents } = await agentsQuery;
+
   const roleLabel: Record<string,string> = { admin: 'Broker', staff: 'Staff', agent: 'Agente' };
   const roleColor: Record<string,string> = { admin: '#ff1200', staff: '#0043ff', agent: '#059669' };
   const parqueLabel: Record<string,string> = { parque1: 'Parque 1', parque3: 'Parque 3', both: '' };
 
+  const quickTags = [
+    { label: 'Parque 1', value: 'Parque 1' },
+    { label: 'Parque 3', value: 'Parque 3' },
+  ];
+
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-4">
         <h1 className="text-3xl font-black" style={{color:'#0C2749'}}>Mi Oficina</h1>
         <p className="text-gray-500 mt-1">Directorio del equipo y guía de procesos operativos</p>
       </div>
 
-      {(staff ?? []).length > 0 && (
+      {/* Search — scoped to Mi Oficina (agents) */}
+      <SectionSearchBar
+        placeholder="Buscar agente por nombre..."
+        defaultValue={query}
+        quickTags={quickTags}
+      />
+
+      {query.length >= 2 && (
+        <p className="text-sm text-gray-500 mb-6">
+          {(agents ?? []).length === 0
+            ? `Sin agentes encontrados para "${query}"`
+            : `${(agents ?? []).length} agente${(agents ?? []).length !== 1 ? 's' : ''} encontrado${(agents ?? []).length !== 1 ? 's' : ''} para "${query}"`
+          }
+        </p>
+      )}
+
+      {/* Staff — always visible (no search filter) */}
+      {!query && (staff ?? []).length > 0 && (
         <section className="mb-10">
-          <h2 className="text-lg font-black mb-5" style={{color:'#0C2749'}}>Conoce al Staff</h2>
+          <h2 className="text-lg font-black mb-5" style={{color:'#0C2749'}}>Conocé al Staff</h2>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <div className="flex items-center gap-4 overflow-x-auto pb-2 pt-2">
-              {(staff ?? []).map((s: {id:string,full_name:string|null,avatar_url:string|null,role:string,department:string|null,parque:string|null}) => {
+              {(staff ?? []).map((s: {id:string;full_name:string|null;avatar_url:string|null;role:string;department:string|null;parque:string|null}) => {
                 const isBroker = s.role === 'admin';
                 const color = roleColor[s.role] ?? '#666';
                 const parqueName = s.parque ? (parqueLabel[s.parque] ?? '') : '';
@@ -71,13 +107,16 @@ export default async function DirectorioPage() {
         </section>
       )}
 
+      {/* Agents */}
       {(agents ?? []).length > 0 && (
         <section className="mb-10">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-black" style={{color:'#0C2749'}}>Agentes ({agents?.length ?? 0})</h2>
+            <h2 className="text-lg font-black" style={{color:'#0C2749'}}>
+              Agentes ({agents?.length ?? 0})
+            </h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {(agents ?? []).slice(0,10).map((a: {id:string,full_name:string|null,avatar_url:string|null,parque:string|null}) => (
+            {(agents ?? []).map((a: {id:string;full_name:string|null;avatar_url:string|null;parque:string|null}) => (
               <div key={a.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center gap-2 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group">
                 {a.avatar_url
                   ? <img src={a.avatar_url} alt="" className="w-16 h-16 rounded-full object-cover group-hover:scale-105 transition-transform duration-200" style={{objectPosition:'center top'}} />
@@ -99,11 +138,20 @@ export default async function DirectorioPage() {
         </section>
       )}
 
-      <section>
-        <h2 className="text-xl font-black mb-2" style={{color:'#0C2749'}}>Guía de procesos</h2>
-        <p className="text-gray-500 text-sm mb-6">Hace clic en cada proceso para ver los pasos detallados</p>
-        <ProcessAccordion />
-      </section>
+      {(agents ?? []).length === 0 && query.length >= 2 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center mb-10">
+          <p className="font-semibold text-gray-500">Sin agentes para &ldquo;{query}&rdquo;</p>
+          <p className="text-sm text-gray-400 mt-1">Intentá con otro nombre</p>
+        </div>
+      )}
+
+      {!query && (
+        <section>
+          <h2 className="text-xl font-black mb-2" style={{color:'#0C2749'}}>Guía de procesos</h2>
+          <p className="text-gray-500 text-sm mb-6">Hacé clic en cada proceso para ver los pasos detallados</p>
+          <ProcessAccordion />
+        </section>
+      )}
     </div>
   );
 }

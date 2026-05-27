@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Camera, Share2, MessageCircle, Image, FileText, Video, Download, ExternalLink, Megaphone } from 'lucide-react';
+import SectionSearchBar from '@/components/shared/SectionSearchBar';
 
 const CATS = [
   { id: 'historias', label: 'Historias', icon: Camera, color: '#E1306C', bg: '#FDF2F8', canvaTag: 'Stories IG' },
@@ -30,13 +31,44 @@ const EVENTOS_FOTOS = [
 
 export default function MarketingPage() {
   const [activecat, setActiveCat] = useState('all');
-  const filtered = activecat === 'all' ? PLANTILLAS : PLANTILLAS.filter(p => p.cat === activecat);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filtered = PLANTILLAS.filter(p => {
+    const matchesCat = activecat === 'all' || p.cat === activecat;
+    const matchesSearch = !searchQuery || searchQuery.length < 2 ||
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.desc.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCat && matchesSearch;
+  });
+
+  const quickTags = [
+    { label: 'Historias', value: 'historia' },
+    { label: 'Reels',     value: 'reel' },
+    { label: 'WhatsApp',  value: 'whatsapp' },
+    { label: 'Branding',  value: 'imagen' },
+  ];
+
   return (
     <div>
       <div className="mb-8">
         <h1 className="text-3xl font-black" style={{color:'#0C2749'}}>Marketing</h1>
         <p className="text-gray-500 mt-1">Plantillas de Canva y recursos para tus redes y comunicaciones</p>
       </div>
+      <SectionSearchBar
+        placeholder="Buscar plantillas y recursos de marketing..."
+        onSearch={setSearchQuery}
+        quickTags={quickTags}
+      />
+
+      {searchQuery.length >= 2 && (
+        <p className="text-sm text-gray-500 mb-4">
+          {filtered.length === 0
+            ? `Sin resultados para "${searchQuery}" en Marketing`
+            : `${filtered.length} resultado${filtered.length !== 1 ? 's' : ''} en Marketing para "${searchQuery}"`
+          }
+        </p>
+      )}
+
       <section className="mb-10">
         <h2 className="text-xl font-black mb-5" style={{color:'#0C2749'}}>Plantillas y recursos</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">

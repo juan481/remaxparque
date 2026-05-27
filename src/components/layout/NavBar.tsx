@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import type { Profile } from '@/types/database';
-import { ChevronDown, LogOut, User, MapPin, Shield, Menu, X } from 'lucide-react';
+import { ChevronDown, LogOut, User, MapPin, Shield, Menu, X, Sparkles } from 'lucide-react';
 
 const NAV = [
   { href: '/dashboard', label: 'Inicio' },
@@ -125,6 +125,17 @@ export default function NavBar({ profile }: { profile: Profile }) {
               </Link>
             );
           })}
+
+          {/* Park IA — acceso directo al asistente */}
+          <Link
+            href="/asistente"
+            className="ml-3 flex items-center gap-1.5 px-3 py-1.5 my-auto rounded-full text-xs font-bold text-white flex-shrink-0 transition-all duration-200 hover:opacity-90 active:scale-95"
+            style={{ background: 'linear-gradient(135deg,#0C2749,#0043ff)' }}
+          >
+            <Sparkles className="w-3 h-3" />
+            Park IA
+          </Link>
+
           {isAdmin && (
             <Link href="/admin" className={cn(
               'ml-auto flex-shrink-0 flex items-center gap-1.5 px-4 py-4 text-sm font-semibold border-b-2 transition-all duration-200',
@@ -160,6 +171,14 @@ export default function NavBar({ profile }: { profile: Profile }) {
                   </Link>
                 );
               })}
+              {/* Park IA mobile */}
+              <Link href="/asistente"
+                className={cn('flex items-center gap-3 px-4 py-3 rounded-xl text-base font-semibold transition-all duration-150',
+                  pathname === '/asistente' ? 'text-white' : 'text-white')}
+                style={{ background: 'linear-gradient(135deg,#0C2749,#0043ff)' }}>
+                <Sparkles className="w-5 h-5" /> Park IA
+              </Link>
+
               {isAdmin && (
                 <Link href="/admin"
                   className={cn('flex items-center gap-3 px-4 py-3 rounded-xl text-base font-semibold transition-all duration-150',

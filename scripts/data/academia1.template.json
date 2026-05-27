@@ -1,0 +1,41 @@
+[
+  {
+    "title": "Inducción General - Bienvenida a RE/MAX Parque",
+    "description": "Primer contacto con la cultura, valores y estructura de RE/MAX Parque. Ideal para nuevos agentes del Parque 1.",
+    "category": "Inducción",
+    "difficulty": "basico",
+    "duration_minutes": 45,
+    "instructor": "Nombre del instructor",
+    "video_url": "https://drive.google.com/file/d/TU_ID_AQUI/view",
+    "pdf_url": null,
+    "thumbnail_url": null,
+    "is_published": true,
+    "parque": "parque1"
+  },
+  {
+    "title": "Proceso de Ventas Parque 1 - Módulo 1",
+    "description": "Captación de propiedades, tasación y presentación del servicio RE/MAX.",
+    "category": "Ventas",
+    "difficulty": "basico",
+    "duration_minutes": 60,
+    "instructor": "Nombre del instructor",
+    "video_url": "https://drive.google.com/file/d/TU_ID_AQUI/view",
+    "pdf_url": "https://drive.google.com/file/d/TU_PDF_AQUI/view",
+    "thumbnail_url": null,
+    "is_published": true,
+    "parque": "parque1"
+  },
+  {
+    "title": "UIF y Cumplimiento Normativo - Parque 1",
+    "description": "Prevención de lavado de activos, formularios UIF y obligaciones legales del agente inmobiliario.",
+    "category": "UIF",
+    "difficulty": "intermedio",
+    "duration_minutes": 30,
+    "instructor": "Nombre del instructor",
+    "video_url": null,
+    "pdf_url": "https://drive.google.com/file/d/TU_PDF_AQUI/view",
+    "thumbnail_url": null,
+    "is_published": true,
+    "parque": "parque1"
+  }
+]

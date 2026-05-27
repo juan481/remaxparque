@@ -23,15 +23,23 @@ type AnyRecognition = any;
 
 export default function ChatInterface({ initialMessages, fullPage = false }: Props) {
   const [messages, setMessages] = useState<Msg[]>(
-    initialMessages ?? [{ role: 'assistant', content: 'Hola! Soy Park, tu asistente de RE/MAX Parque. Puedo ayudarte con documentos, procesos de venta, alquiler y generacion de formularios. En que te ayudo?' }]
+    initialMessages ?? [{
+      role: 'assistant',
+      content: 'Hola! Soy Park, tu asistente de RE/MAX Parque. Puedo ayudarte con procesos, documentos y consultas internas. ¿En qué te ayudo?',
+    }]
   );
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
+  // Thread ID persists for the session (resets on page refresh)
+  const [threadId, setThreadId] = useState<string | null>(null);
+
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<AnyRecognition>(null);
 
+  // Speech recognition setup
   useEffect(() => {
     const w = window as AnyRecognition;
     const SpeechRec = w.SpeechRecognition || w.webkitSpeechRecognition;
@@ -53,8 +61,12 @@ export default function ChatInterface({ initialMessages, fullPage = false }: Pro
     recognitionRef.current = rec;
   }, []);
 
+  // Auto-scroll to bottom whenever messages change
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Use scrollRef for the container scroll, not scrollIntoView
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
   }, [messages, loading]);
 
   function toggleVoice() {
@@ -80,21 +92,28 @@ export default function ChatInterface({ initialMessages, fullPage = false }: Pro
       const res = await fetch('/api/park/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, history: messages.slice(-6) }),
+        body: JSON.stringify({ message: userMsg, thread_id: threadId }),
       });
       const data = await res.json();
+
+      // Persist thread_id for conversation continuity
+      if (data.thread_id) setThreadId(data.thread_id);
+
       if (data.form_request) {
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: data.reply ?? 'Completa los datos para generar el documento:',
+          content: data.reply ?? 'Completá los datos para generar el documento:',
           type: 'form_request',
           formData: data.form_request,
         }]);
       } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.reply ?? 'No pude generar una respuesta.' }]);
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: data.reply ?? 'No pude generar una respuesta.',
+        }]);
       }
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Error de conexion. Intenta de nuevo.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Error de conexión. Intentá de nuevo.' }]);
     }
     setLoading(false);
   }
@@ -114,7 +133,7 @@ export default function ChatInterface({ initialMessages, fullPage = false }: Pro
         const url = URL.createObjectURL(blob);
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: 'Documento listo! Podes descargarlo y abrirlo en el navegador para imprimir o guardar como PDF.',
+          content: 'Documento listo! Podés descargarlo y abrirlo en el navegador para imprimir o guardar como PDF.',
           type: 'doc_ready',
           docUrl: url,
           docFilename: result.filename ?? 'documento.html',
@@ -129,8 +148,15 @@ export default function ChatInterface({ initialMessages, fullPage = false }: Pro
   }
 
   return (
-    <div className={`flex flex-col ${fullPage ? 'h-full' : ''}`}>
-      <div className={`${fullPage ? 'flex-1 min-h-0' : 'min-h-[240px]'} overflow-y-auto p-4 space-y-3`} style={{ background: '#f7f5ee' }}>
+    // Outer: fills parent height via flex-1 min-h-0 in full-page, fixed height in widget
+    <div className={`flex flex-col ${fullPage ? 'flex-1 min-h-0' : 'h-[480px]'}`}>
+
+      {/* Messages area: scrollable, grows to fill available space */}
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3"
+        style={{ background: '#f7f5ee' }}
+      >
         {messages.map((m, i) => (
           <div key={i} className={`flex items-end gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {m.role === 'assistant' && (
@@ -139,8 +165,14 @@ export default function ChatInterface({ initialMessages, fullPage = false }: Pro
               </div>
             )}
             <div className="max-w-xs sm:max-w-sm lg:max-w-md">
-              <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'text-white rounded-br-sm' : 'text-gray-700 bg-white shadow-sm rounded-bl-sm'}`}
-                style={m.role === 'user' ? { background: '#0043ff' } : {}}>
+              <div
+                className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                  m.role === 'user'
+                    ? 'text-white rounded-br-sm'
+                    : 'text-gray-700 bg-white shadow-sm rounded-bl-sm'
+                }`}
+                style={m.role === 'user' ? { background: '#0043ff' } : {}}
+              >
                 {m.content}
               </div>
               {m.type === 'form_request' && m.formData && (
@@ -155,9 +187,12 @@ export default function ChatInterface({ initialMessages, fullPage = false }: Pro
               )}
               {m.type === 'doc_ready' && m.docUrl && (
                 <div className="mt-2">
-                  <a href={m.docUrl} download={m.docFilename}
+                  <a
+                    href={m.docUrl}
+                    download={m.docFilename}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white"
-                    style={{ background: '#059669' }}>
+                    style={{ background: '#059669' }}
+                  >
                     Descargar documento
                   </a>
                 </div>
@@ -165,6 +200,7 @@ export default function ChatInterface({ initialMessages, fullPage = false }: Pro
             </div>
           </div>
         ))}
+
         {loading && (
           <div className="flex items-end gap-2">
             <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#0043ff' }}>
@@ -172,21 +208,32 @@ export default function ChatInterface({ initialMessages, fullPage = false }: Pro
             </div>
             <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm flex items-center gap-1">
               {[0, 150, 300].map(d => (
-                <span key={d} className="w-2 h-2 rounded-full animate-bounce" style={{ background: '#0043ff', animationDelay: d + 'ms' }} />
+                <span
+                  key={d}
+                  className="w-2 h-2 rounded-full animate-bounce"
+                  style={{ background: '#0043ff', animationDelay: d + 'ms' }}
+                />
               ))}
             </div>
           </div>
         )}
+
+        {/* Scroll anchor */}
         <div ref={bottomRef} />
       </div>
 
+      {/* Input bar: always visible at bottom */}
       <div className="p-4 bg-white border-t border-gray-100 flex-shrink-0">
         <div className="flex items-center gap-2">
           {voiceSupported && (
-            <button onClick={toggleVoice}
-              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 ${listening ? 'text-white' : 'text-gray-400 bg-gray-100 hover:bg-gray-200'}`}
+            <button
+              onClick={toggleVoice}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                listening ? 'text-white' : 'text-gray-400 bg-gray-100 hover:bg-gray-200'
+              }`}
               style={listening ? { background: '#ff1200' } : {}}
-              title={listening ? 'Detener' : 'Hablar'}>
+              title={listening ? 'Detener' : 'Hablar'}
+            >
               {listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>
           )}
@@ -198,14 +245,19 @@ export default function ChatInterface({ initialMessages, fullPage = false }: Pro
             className="flex-1 px-4 py-2.5 text-sm bg-gray-50 border-2 border-gray-100 rounded-xl focus:outline-none focus:border-[#0043ff] transition-colors duration-200"
             disabled={loading}
           />
-          <button onClick={() => send()} disabled={!input.trim() || loading}
+          <button
+            onClick={() => send()}
+            disabled={!input.trim() || loading}
             className="w-10 h-10 rounded-xl flex items-center justify-center text-white transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-40 flex-shrink-0"
-            style={{ background: '#0043ff' }}>
+            style={{ background: '#0043ff' }}
+          >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </button>
         </div>
         {listening && (
-          <p className="text-xs text-center mt-2" style={{ color: '#ff1200' }}>Escuchando... habla ahora</p>
+          <p className="text-xs text-center mt-2" style={{ color: '#ff1200' }}>
+            Escuchando... hablá ahora
+          </p>
         )}
       </div>
     </div>
