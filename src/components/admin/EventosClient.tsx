@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { Plus, Eye, EyeOff, Calendar, Users, X, Download } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Eye, EyeOff, Calendar, Users, X, Download, ImageIcon, Loader2 } from 'lucide-react';
 import { createNews, updateNews, deleteNews } from '@/app/(admin)/admin/_actions/news';
 import AdminModal from './AdminModal';
 
@@ -30,20 +30,46 @@ export default function EventosClient({ events, regCounts }: { events: EventItem
   const [regsModal, setRegsModal] = useState<{eventId:string;title:string}|null>(null);
   const [regs, setRegs] = useState<{registered_at:string;profiles:{full_name:string|null}}[]>([]);
   const [loadingRegs, setLoadingRegs] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const now = new Date();
   const future = events.filter(e => e.published_at && new Date(e.published_at) >= now);
   const past   = events.filter(e => !e.published_at || new Date(e.published_at) < now);
 
   function countFor(id: string) { return regCounts.find(r => r.event_id === id)?.count ?? 0; }
-  function openNew() { setEdit(null); setErr(null); setOpen(true); }
-  function openEdit(item: EventItem) { setEdit(item); setErr(null); setOpen(true); }
-  function close() { setOpen(false); setEdit(null); setErr(null); }
+  function openNew() { setEdit(null); setErr(null); setImageUrl(''); setUploadErr(null); setOpen(true); }
+  function openEdit(item: EventItem) { setEdit(item); setErr(null); setImageUrl(item.image_url ?? ''); setUploadErr(null); setOpen(true); }
+  function close() { setOpen(false); setEdit(null); setErr(null); setImageUrl(''); setUploadErr(null); }
+
+  async function handleImageFile(file: File) {
+    setUploadErr(null);
+    if (!['image/jpeg', 'image/jpg'].includes(file.type)) {
+      setUploadErr('Solo se permiten archivos .jpg.'); return;
+    }
+    if (file.size > 1 * 1024 * 1024) {
+      setUploadErr('El archivo supera el máximo de 1 MB.'); return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/eventos/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.url) { setImageUrl(data.url); }
+      else { setUploadErr(data.error ?? 'Error al subir la imagen.'); }
+    } catch { setUploadErr('Error de conexión al subir la imagen.'); }
+    finally { setUploading(false); }
+  }
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
       const fd = new FormData(e.currentTarget);
+      // Inject the uploaded image URL (replaces the hidden field)
+      fd.set('image_url', imageUrl);
       edit ? await updateNews(edit.id, fd) : await createNews(fd);
       close();
     } catch(ex) { setErr(ex instanceof Error ? ex.message : 'Error inesperado'); }
@@ -197,9 +223,42 @@ export default function EventosClient({ events, regCounts }: { events: EventItem
               </select>
             </div>
           </div>
+          {/* Image upload */}
           <div>
-            <label className={lbl}>Imagen del evento (URL)</label>
-            <input name="image_url" type="url" defaultValue={edit?.image_url??''} className={inp} placeholder="https://..." />
+            <label className={lbl}>Imagen del evento</label>
+            <input type="hidden" name="image_url" value={imageUrl} />
+            {imageUrl ? (
+              <div className="relative w-full h-36 rounded-xl overflow-hidden border border-gray-200 group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
+                <button type="button"
+                  onClick={() => { setImageUrl(''); if (fileRef.current) fileRef.current.value = ''; }}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all">
+                {uploading ? (
+                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                ) : (
+                  <>
+                    <ImageIcon className="w-7 h-7 text-gray-300 mb-1.5" />
+                    <span className="text-sm font-semibold text-gray-400">Subir imagen</span>
+                  </>
+                )}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,.jpg"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); }}
+                />
+              </label>
+            )}
+            <p className="text-xs text-gray-400 mt-1.5">Solo .jpg · Máximo 1 MB</p>
+            {uploadErr && <p className="text-xs text-red-500 mt-1 font-medium">{uploadErr}</p>}
           </div>
           <div>
             <label className={lbl}>Visibilidad por parque</label>

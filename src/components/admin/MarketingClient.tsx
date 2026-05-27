@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { Plus, Camera, Image as ImageIcon, Video, Share2, FileText, MessageCircle, Link, Megaphone } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Camera, Image as ImageIcon, Video, Share2, FileText, MessageCircle, Link, Megaphone, X, Loader2 } from 'lucide-react';
 import { createTemplate, updateTemplate, deleteTemplate } from '@/app/(admin)/admin/_actions/marketing';
 import AdminModal from './AdminModal';
 
@@ -27,17 +27,42 @@ export default function MarketingClient({ templates }: { templates: Template[] }
   const [edit, setEdit] = useState<Template | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [thumbUrl, setThumbUrl] = useState<string>('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const active = templates.filter(t => t.is_active).length;
 
-  function openNew() { setEdit(null); setErr(null); setOpen(true); }
-  function openEdit(item: Template) { setEdit(item); setErr(null); setOpen(true); }
-  function close() { setOpen(false); setEdit(null); setErr(null); }
+  function openNew() { setEdit(null); setErr(null); setThumbUrl(''); setUploadErr(null); setOpen(true); }
+  function openEdit(item: Template) { setEdit(item); setErr(null); setThumbUrl(item.thumbnail_url ?? ''); setUploadErr(null); setOpen(true); }
+  function close() { setOpen(false); setEdit(null); setErr(null); setThumbUrl(''); setUploadErr(null); }
+
+  async function handleThumbFile(file: File) {
+    setUploadErr(null);
+    if (!['image/jpeg', 'image/jpg'].includes(file.type)) {
+      setUploadErr('Solo se permiten archivos .jpg.'); return;
+    }
+    if (file.size > 1 * 1024 * 1024) {
+      setUploadErr('El archivo supera el máximo de 1 MB.'); return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/marketing/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.url) { setThumbUrl(data.url); }
+      else { setUploadErr(data.error ?? 'Error al subir la imagen.'); }
+    } catch { setUploadErr('Error de conexión al subir la imagen.'); }
+    finally { setUploading(false); }
+  }
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
       const fd = new FormData(e.currentTarget);
+      fd.set('thumbnail_url', thumbUrl);
       edit ? await updateTemplate(edit.id, fd) : await createTemplate(fd);
       close();
     } catch(ex) { setErr(ex instanceof Error ? ex.message : 'Error inesperado'); }
@@ -171,9 +196,42 @@ export default function MarketingClient({ templates }: { templates: Template[] }
             <label className={lbl}>Link de Canva</label>
             <input name="canva_link" type="url" defaultValue={edit?.canva_link??''} className={inp} placeholder="https://www.canva.com/design/..." />
           </div>
+          {/* Thumbnail upload */}
           <div>
-            <label className={lbl}>URL de miniatura (preview)</label>
-            <input name="thumbnail_url" type="url" defaultValue={edit?.thumbnail_url??''} className={inp} placeholder="https://..." />
+            <label className={lbl}>Miniatura (preview)</label>
+            <input type="hidden" name="thumbnail_url" value={thumbUrl} />
+            {thumbUrl ? (
+              <div className="relative w-full h-36 rounded-xl overflow-hidden border border-gray-200 group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={thumbUrl} alt="preview" className="w-full h-full object-cover" />
+                <button type="button"
+                  onClick={() => { setThumbUrl(''); if (fileRef.current) fileRef.current.value = ''; }}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/30 transition-all">
+                {uploading ? (
+                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                ) : (
+                  <>
+                    <ImageIcon className="w-7 h-7 text-gray-300 mb-1.5" />
+                    <span className="text-sm font-semibold text-gray-400">Subir imagen</span>
+                  </>
+                )}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/jpg,.jpg"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleThumbFile(f); }}
+                />
+              </label>
+            )}
+            <p className="text-xs text-gray-400 mt-1.5">Solo .jpg · Máximo 1 MB</p>
+            {uploadErr && <p className="text-xs text-red-500 mt-1 font-medium">{uploadErr}</p>}
           </div>
           <div>
             <label className={lbl}>Visibilidad por parque</label>

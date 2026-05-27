@@ -91,7 +91,7 @@ export default async function AnalyticsPage() {
               { label:'Base de datos', status:'Online', color:'#059669' },
               { label:'Autenticacion Google', status:'Online', color:'#059669' },
               { label:'Storage de archivos', status:'Online', color:'#059669' },
-              { label:'Chatbot IA (RAG)', status:'Proximamente', color:'#D97706' },
+              { label:'Chatbot IA (Park IA)', status:'Online', color:'#059669' },
             ].map(({ label, status, color }) => (
               <div key={label} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
                 <span className="text-base font-medium text-gray-700">{label}</span>

@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { FileText, Download, ArrowRight, Users, Home as HomeIcon, ClipboardList, Scale, AlertCircle, Search } from 'lucide-react';
 import SectionSearchBar from '@/components/shared/SectionSearchBar';
@@ -11,15 +12,28 @@ export default async function LegalesPage({
   const { q } = await searchParams;
   const query = (q ?? '').trim();
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   const admin = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // Build document query — scoped to Legales section
+  // Fetch user parque to filter docs
+  const { data: profile } = user
+    ? await admin.from('profiles').select('parque, role').eq('id', user.id).single()
+    : { data: null };
+  const isAdmin = ['staff', 'admin'].includes(profile?.role ?? '');
+  const userParque = profile?.parque ?? null;
+
+  // Build document query — scoped to Legales section, filtered by parque
   let docsQuery = admin.from('documents').select('*').eq('status','vigente').order('effective_date',{ascending:false});
+  if (!isAdmin && userParque && userParque !== 'both') {
+    docsQuery = docsQuery.contains('parque_visibility', [userParque]);
+  }
   if (query.length >= 2) {
-    docsQuery = docsQuery.or(`title.ilike.%${query}%,description.ilike.%${query}%`);
+    docsQuery = docsQuery.or(`title.ilike.%${query}%`);
   }
   const { data: docs } = await docsQuery;
 
@@ -41,9 +55,9 @@ export default async function LegalesPage({
   ];
 
   const PROCS = [
-    { icon: Users,         label: 'Conocé al Staff',       desc: 'Directorio del equipo',         color: '#0043ff', bg: '#EFF6FF' },
-    { icon: HomeIcon,      label: 'Alta de propiedades',   desc: 'Proceso paso a paso',           color: '#059669', bg: '#ECFDF5' },
-    { icon: ClipboardList, label: 'Solicitud de informes', desc: 'Dominio e inhibición',          color: '#7C3AED', bg: '#F5F3FF' },
+    { icon: Users,         label: 'Conocé al Staff',       desc: 'Directorio del equipo',         color: '#0043ff', bg: '#EFF6FF', href: '/directorio' },
+    { icon: HomeIcon,      label: 'Alta de propiedades',   desc: 'Proceso paso a paso',           color: '#059669', bg: '#ECFDF5', href: '/documentos/alta-propiedades' },
+    { icon: ClipboardList, label: 'Solicitud de informes', desc: 'Dominio e inhibición',          color: '#7C3AED', bg: '#F5F3FF', href: '/documentos/solicitud-informes' },
   ];
 
   const quickTags = [
@@ -182,8 +196,9 @@ export default async function LegalesPage({
             <section>
               <h2 className="text-lg font-black mb-4" style={{color:'#0C2749'}}>Procesos administrativos</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {PROCS.map(({ icon: Icon, label, desc, color, bg }) => (
-                  <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col items-center text-center gap-3 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group cursor-pointer">
+                {PROCS.map(({ icon: Icon, label, desc, color, bg, href }) => (
+                  <Link key={label} href={href}
+                    className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col items-center text-center gap-3 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 group">
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200" style={{background:bg}}>
                       <Icon className="w-7 h-7" style={{color}} />
                     </div>
@@ -194,7 +209,7 @@ export default async function LegalesPage({
                     <div className="flex items-center gap-1 text-xs font-bold mt-auto" style={{color}}>
                       ver más <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform duration-200" />
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </section>

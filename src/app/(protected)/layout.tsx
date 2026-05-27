@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import NavBar from '@/components/layout/NavBar';
 import ParkAIButton from '@/components/ParkAIButton';
+import SessionTracker from '@/components/SessionTracker';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -18,13 +19,14 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen flex flex-col" style={{background:'#f7f5ee'}}>
+      <SessionTracker userId={profile.id} parque={profile.parque ?? null} />
       <NavBar profile={profile} />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {children}
       </main>
       <footer className="bg-white border-t border-gray-100 py-4 px-6 mt-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-3">
-          <p className="text-xs text-gray-400">&#169; 2026 RE/MAX Parque. Dise&#241;ado por Just Create</p>
+          <p className="text-xs text-gray-400">&#169; 2026 RE/MAX Parque. Dise&#241;ado por <a href="https://justcreate.com.ar/" target="_blank" rel="noopener noreferrer" className="hover:underline" style={{color:'#0043ff'}}>Just Create</a></p>
           <div className="flex items-center gap-2">
             <div className="relative w-5 h-5"><div className="absolute inset-0 flex rounded-full overflow-hidden"><div className="w-1/2" style={{background:'#ff1200'}}/><div className="w-1/2" style={{background:'#0043ff'}}/></div></div>
             <span className="text-xs font-bold" style={{color:'#0C2749'}}>RE/MAX PARQUE</span>

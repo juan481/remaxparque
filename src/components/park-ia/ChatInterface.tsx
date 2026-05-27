@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, Loader2, Mic, MicOff } from 'lucide-react';
+import { Send, Bot, Loader2, Mic, MicOff, Trash2 } from 'lucide-react';
 import FormCard from './FormCard';
 
 export interface FormField { key: string; label: string; type: string; required: boolean; }
@@ -21,23 +21,70 @@ interface Props {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyRecognition = any;
 
+const SESSION_KEY = 'park_ia_v1';
+const WELCOME: Msg = {
+  role: 'assistant',
+  content: 'Hola! Soy Park, tu asistente de RE/MAX Parque. Puedo ayudarte con procesos, documentos y consultas internas. ¿En qué te ayudo?',
+};
+// Session expires after 2 hours of inactivity
+const SESSION_TTL = 2 * 60 * 60 * 1000;
+
+function loadSession(): { messages: Msg[]; threadId: string | null } {
+  if (typeof window === 'undefined') return { messages: [WELCOME], threadId: null };
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return { messages: [WELCOME], threadId: null };
+    const { messages, threadId, savedAt } = JSON.parse(raw);
+    if (Date.now() - savedAt > SESSION_TTL) {
+      sessionStorage.removeItem(SESSION_KEY);
+      return { messages: [WELCOME], threadId: null };
+    }
+    return { messages: messages ?? [WELCOME], threadId: threadId ?? null };
+  } catch { return { messages: [WELCOME], threadId: null }; }
+}
+
+function saveSession(messages: Msg[], threadId: string | null) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ messages, threadId, savedAt: Date.now() }));
+  } catch { /* storage full or unavailable */ }
+}
+
 export default function ChatInterface({ initialMessages, fullPage = false }: Props) {
-  const [messages, setMessages] = useState<Msg[]>(
-    initialMessages ?? [{
-      role: 'assistant',
-      content: 'Hola! Soy Park, tu asistente de RE/MAX Parque. Puedo ayudarte con procesos, documentos y consultas internas. ¿En qué te ayudo?',
-    }]
-  );
+  const [messages, setMessages] = useState<Msg[]>(initialMessages ?? [WELCOME]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
-  // Thread ID persists for the session (resets on page refresh)
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<AnyRecognition>(null);
+
+  // Hydrate from sessionStorage on mount
+  useEffect(() => {
+    if (!initialMessages) {
+      const stored = loadSession();
+      setMessages(stored.messages);
+      setThreadId(stored.threadId);
+    }
+    setHydrated(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist to sessionStorage whenever messages or threadId change
+  useEffect(() => {
+    if (hydrated && !initialMessages) {
+      saveSession(messages, threadId);
+    }
+  }, [messages, threadId, hydrated, initialMessages]);
+
+  function clearHistory() {
+    sessionStorage.removeItem(SESSION_KEY);
+    setMessages([WELCOME]);
+    setThreadId(null);
+  }
 
   // Speech recognition setup
   useEffect(() => {
@@ -223,7 +270,7 @@ export default function ChatInterface({ initialMessages, fullPage = false }: Pro
       </div>
 
       {/* Input bar: always visible at bottom */}
-      <div className="p-4 bg-white border-t border-gray-100 flex-shrink-0">
+      <div className="px-4 pt-3 pb-2 bg-white border-t border-gray-100 flex-shrink-0">
         <div className="flex items-center gap-2">
           {voiceSupported && (
             <button
@@ -258,6 +305,16 @@ export default function ChatInterface({ initialMessages, fullPage = false }: Pro
           <p className="text-xs text-center mt-2" style={{ color: '#ff1200' }}>
             Escuchando... hablá ahora
           </p>
+        )}
+        {/* Clear history link */}
+        {messages.length > 1 && (
+          <div className="flex justify-end mt-1.5">
+            <button onClick={clearHistory}
+              className="flex items-center gap-1 text-xs text-gray-300 hover:text-red-400 transition-colors"
+              title="Borrar historial">
+              <Trash2 className="w-3 h-3" /> Limpiar chat
+            </button>
+          </div>
         )}
       </div>
     </div>

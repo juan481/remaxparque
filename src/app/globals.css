@@ -6,6 +6,11 @@
   --remax-blue: #0043ff;
   --remax-dark: #0C2749;
   --remax-cream: #f7f5ee;
+  /* NavBar height: top bar only on mobile, top bar + nav row on desktop */
+  --nav-h: 60px;
+}
+@media (min-width: 768px) {
+  :root { --nav-h: 112px; }
 }
 
 * { box-sizing: border-box; }
