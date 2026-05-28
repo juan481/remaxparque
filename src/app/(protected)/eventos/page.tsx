@@ -28,7 +28,7 @@ export default async function EventosPage() {
       .from('event_registrations')
       .select('event_id')
       .eq('user_id', user!.id),
-    // Past events with an image — for the photo gallery grid
+    // Events with an image — for the photo gallery grid (all dates, most recent first)
     admin
       .from('news')
       .select('id,title,published_at,image_url,drive_url')
@@ -36,7 +36,6 @@ export default async function EventosPage() {
       .eq('category', 'evento')
       .in('parque_visibility', ['both', parqueFilter])
       .not('image_url', 'is', null)
-      .lt('published_at', now)
       .order('published_at', { ascending: false })
       .limit(12),
   ]);
@@ -79,7 +78,7 @@ export default async function EventosPage() {
         <section className="mt-12">
           <div className="flex items-center gap-3 mb-5">
             <Images className="w-5 h-5" style={{color:'#0043ff'}} />
-            <h2 className="text-xl font-black" style={{color:'#0C2749'}}>Fotos de eventos</h2>
+            <h2 className="text-xl font-black" style={{color:'#0C2749'}}>Galería de eventos</h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {gallery.map(ev => {

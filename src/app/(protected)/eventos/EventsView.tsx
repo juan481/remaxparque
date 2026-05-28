@@ -259,12 +259,30 @@ function FutureCard({ ev, isRegistered, onOpenDetail, onRegistrationChange }: {
   return (
     <div onClick={onOpenDetail}
       className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer">
-      <div className="flex items-stretch">
-        <div className="w-20 flex-shrink-0 flex flex-col items-center justify-center py-4 text-white" style={{ background: color }}>
-          <p className="text-xs font-bold uppercase opacity-80">{MONTHS_SHORT[d.getMonth()]}</p>
-          <p className="text-3xl font-black leading-none">{d.getDate()}</p>
-          <p className="text-xs opacity-70 mt-0.5">{d.getFullYear()}</p>
+      {/* Image banner — shown when event has a cover photo */}
+      {ev.image_url && (
+        <div className="h-40 sm:h-48 relative overflow-hidden">
+          <img src={ev.image_url} alt={ev.title}
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.45))' }} />
+          {/* Date badge over image */}
+          <div className="absolute bottom-3 left-3 flex items-center gap-2">
+            <div className="flex flex-col items-center justify-center px-3 py-1.5 rounded-xl text-white" style={{ background: color }}>
+              <p className="text-xs font-bold uppercase opacity-90">{MONTHS_SHORT[d.getMonth()]}</p>
+              <p className="text-2xl font-black leading-none">{d.getDate()}</p>
+            </div>
+          </div>
         </div>
+      )}
+      <div className="flex items-stretch">
+        {/* Date block — only shown when no image */}
+        {!ev.image_url && (
+          <div className="w-20 flex-shrink-0 flex flex-col items-center justify-center py-4 text-white" style={{ background: color }}>
+            <p className="text-xs font-bold uppercase opacity-80">{MONTHS_SHORT[d.getMonth()]}</p>
+            <p className="text-3xl font-black leading-none">{d.getDate()}</p>
+            <p className="text-xs opacity-70 mt-0.5">{d.getFullYear()}</p>
+          </div>
+        )}
         <div className="flex-1 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -380,23 +398,43 @@ function EventModal({ ev, isRegistered, onClose, onRegistrationChange }: {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
         onClick={e => e.stopPropagation()}>
 
-        {/* Coloured header */}
-        <div className="p-6 pb-5" style={{ background: color }}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
+        {/* Header: image hero if available, otherwise solid color */}
+        {ev.image_url ? (
+          <div className="relative h-52 overflow-hidden">
+            <img src={ev.image_url} alt={ev.title}
+              className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.65) 100%)' }} />
+            <button onClick={onClose}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center transition-colors">
+              <X className="w-4 h-4 text-white" />
+            </button>
+            <div className="absolute bottom-0 left-0 right-0 p-5">
               {ev.event_online && (
-                <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full mb-3 bg-white/20 text-white">
+                <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full mb-2 bg-white/20 text-white backdrop-blur-sm">
                   <Wifi className="w-3 h-3" /> Online
                 </span>
               )}
-              <h2 className="text-xl font-black text-white leading-tight">{ev.title}</h2>
+              <h2 className="text-xl font-black text-white leading-tight drop-shadow">{ev.title}</h2>
             </div>
-            <button onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center flex-shrink-0 transition-colors">
-              <X className="w-4 h-4 text-white" />
-            </button>
           </div>
-        </div>
+        ) : (
+          <div className="p-6 pb-5" style={{ background: color }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                {ev.event_online && (
+                  <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full mb-3 bg-white/20 text-white">
+                    <Wifi className="w-3 h-3" /> Online
+                  </span>
+                )}
+                <h2 className="text-xl font-black text-white leading-tight">{ev.title}</h2>
+              </div>
+              <button onClick={onClose}
+                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center flex-shrink-0 transition-colors">
+                <X className="w-4 h-4 text-white" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Details */}
         <div className="p-6 space-y-4">
