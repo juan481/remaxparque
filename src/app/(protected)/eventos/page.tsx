@@ -95,7 +95,6 @@ export default async function EventosPage() {
                     />
                     {ev.drive_url && (
                       <a href={ev.drive_url} target="_blank" rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
                         className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-black/70">
                         <ExternalLink className="w-4 h-4 text-white" />
                       </a>

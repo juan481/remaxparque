@@ -140,7 +140,7 @@ export function ResetPasswordButton({ userId, userName }: { userId: string; user
       <button onClick={() => setOpen(true)}
         className="flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-all hover:opacity-80"
         style={{ background: '#FFFBEB', color: '#D97706' }}>
-        <RefreshCw className="w-3.5 h-3.5" /> Reset
+        <RefreshCw className="w-3.5 h-3.5" /> Reiniciar
       </button>
 
       <AdminModal title={`Reset contraseña — ${userName}`} open={open} onClose={close}>
