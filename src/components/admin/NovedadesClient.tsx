@@ -65,18 +65,20 @@ export default function NovedadesClient({ news }: { news: NewsItem[] }) {
       }
 
       fd.set('image_url', imageUrl);
-      edit ? await updateNews(edit.id, fd) : await createNews(fd);
+      const result = edit ? await updateNews(edit.id, fd) : await createNews(fd);
+      setBusy(false);
+      if (result?.error) { setErr(result.error); return; }
       close();
-    } catch(ex) { setErr(ex instanceof Error ? ex.message : 'Error inesperado'); }
-    finally { setBusy(false); }
+    } catch(ex) { setBusy(false); setErr(ex instanceof Error ? ex.message : 'Error inesperado'); }
   }
 
   async function remove() {
     if (!edit || !confirm('Eliminar esta novedad?')) return;
     setBusy(true);
-    try { await deleteNews(edit.id); close(); }
-    catch(ex) { setErr(ex instanceof Error ? ex.message : 'Error al eliminar'); }
-    finally { setBusy(false); }
+    const result = await deleteNews(edit.id);
+    setBusy(false);
+    if (result?.error) { setErr(result.error); return; }
+    close();
   }
 
   const fmt      = (iso: string) => new Date(iso).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'});

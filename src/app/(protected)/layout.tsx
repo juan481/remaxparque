@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import NavBar from '@/components/layout/NavBar';
 import ParkAIButton from '@/components/ParkAIButton';
 import SessionTracker from '@/components/SessionTracker';
+import PasswordChangeGuard from '@/components/PasswordChangeGuard';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -19,6 +20,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen flex flex-col" style={{background:'#f7f5ee'}}>
+      <PasswordChangeGuard passwordChanged={profile.password_changed ?? true} />
       <SessionTracker userId={profile.id} parque={profile.parque ?? null} />
       <NavBar profile={profile} />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">

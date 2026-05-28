@@ -9,7 +9,9 @@ function admin() {
   );
 }
 
-export async function createNews(formData: FormData) {
+type ActionResult = { error: string } | void;
+
+export async function createNews(formData: FormData): Promise<ActionResult> {
   const pub = formData.get('is_published');
   const online = formData.get('event_online');
   const { error } = await admin().from('news').insert({
@@ -25,12 +27,14 @@ export async function createNews(formData: FormData) {
     event_online: online === 'true' || online === 'on',
     parque_visibility: (formData.get('parque_visibility') as string) || 'both',
   });
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
   revalidatePath('/admin/novedades');
+  revalidatePath('/admin/eventos');
   revalidatePath('/novedades');
+  revalidatePath('/eventos');
 }
 
-export async function updateNews(id: string, formData: FormData) {
+export async function updateNews(id: string, formData: FormData): Promise<ActionResult> {
   const pub = formData.get('is_published');
   const online = formData.get('event_online');
   const { error } = await admin().from('news').update({
@@ -46,16 +50,16 @@ export async function updateNews(id: string, formData: FormData) {
     event_online: online === 'true' || online === 'on',
     parque_visibility: (formData.get('parque_visibility') as string) || 'both',
   }).eq('id', id);
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
   revalidatePath('/admin/novedades');
   revalidatePath('/admin/eventos');
   revalidatePath('/novedades');
   revalidatePath('/eventos');
 }
 
-export async function deleteNews(id: string) {
+export async function deleteNews(id: string): Promise<ActionResult> {
   const { error } = await admin().from('news').delete().eq('id', id);
-  if (error) throw new Error(error.message);
+  if (error) return { error: error.message };
   revalidatePath('/admin/novedades');
   revalidatePath('/admin/eventos');
   revalidatePath('/novedades');

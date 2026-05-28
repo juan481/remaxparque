@@ -21,7 +21,41 @@ export default async function DirectorioPage() {
 
   const roleLabel: Record<string,string> = { admin: 'Broker', staff: 'Staff', agent: 'Agente' };
   const roleColor: Record<string,string> = { admin: '#ff1200', staff: '#0043ff', agent: '#059669' };
-  const parqueLabel: Record<string,string> = { parque1: 'Parque 1', parque3: 'Parque 3', both: '' };
+
+  // Split staff by parque
+  const staffAll = staff ?? [];
+  const staffP1   = staffAll.filter(s => s.parque === 'parque1' || s.parque === 'both');
+  const staffP3   = staffAll.filter(s => s.parque === 'parque3' || s.parque === 'both');
+  const hasBothGroups = staffP1.length > 0 && staffP3.length > 0;
+
+  function renderStaff(members: typeof staffAll) {
+    return members.map(s => {
+      const isBroker = s.role === 'admin';
+      const color = roleColor[s.role] ?? '#666';
+      const size = isBroker ? '96px' : '68px';
+      return (
+        <div key={s.id} className="flex flex-col items-center gap-2.5 flex-shrink-0 group cursor-pointer"
+          style={{minWidth: isBroker ? '130px' : '90px'}}>
+          <div className="relative">
+            {s.avatar_url
+              ? <img src={s.avatar_url} alt={s.full_name ?? ''} className="rounded-full object-cover ring-2 ring-gray-100 transition-all duration-200 group-hover:ring-4"
+                  style={{width: size, height: size, objectPosition:'center top'}} />
+              : <div className="rounded-full flex items-center justify-center text-white font-black transition-all duration-200 group-hover:scale-105"
+                  style={{width: size, height: size, background:'linear-gradient(135deg,#0C2749,#0043ff)', fontSize: isBroker ? '32px' : '22px'}}>
+                  {s.full_name?.[0]??'?'}
+                </div>
+            }
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white" style={{background: color}} />
+          </div>
+          <div className="text-center">
+            <p className="font-bold leading-tight" style={{color:'#0C2749', fontSize: isBroker ? '14px' : '12px'}}>{s.full_name ?? 'Staff'}</p>
+            <p className="text-xs font-bold mt-0.5" style={{color}}>{roleLabel[s.role] ?? s.role}</p>
+            {s.department && <p className="text-xs text-gray-400 mt-0.5">{s.department}</p>}
+          </div>
+        </div>
+      );
+    });
+  }
 
   return (
     <div>
@@ -30,44 +64,35 @@ export default async function DirectorioPage() {
         <p className="text-gray-500 mt-1">Directorio del equipo y guía de procesos operativos</p>
       </div>
 
-      {/* Staff — Conocé al Staff (skeleton para futura sección independiente) */}
-      {(staff ?? []).length > 0 && (
+      {/* Staff — grouped by parque */}
+      {staffAll.length > 0 && (
         <section className="mb-10">
           <h2 className="text-lg font-black mb-5" style={{color:'#0C2749'}}>Conocé al Staff</h2>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <div className="flex items-center gap-4 overflow-x-auto pb-2 pt-2">
-              {(staff ?? []).map((s: {id:string;full_name:string|null;avatar_url:string|null;role:string;department:string|null;parque:string|null}) => {
-                const isBroker = s.role === 'admin';
-                const color = roleColor[s.role] ?? '#666';
-                const parqueName = s.parque ? (parqueLabel[s.parque] ?? '') : '';
-                return (
-                  <div key={s.id} className="flex flex-col items-center gap-3 flex-shrink-0 group cursor-pointer" style={{minWidth: isBroker ? '140px' : '100px'}}>
-                    <div className="relative">
-                      {s.avatar_url
-                        ? <img src={s.avatar_url} alt={s.full_name ?? ''} className="rounded-full object-cover ring-2 transition-all duration-200 group-hover:ring-4"
-                            style={{width: isBroker ? '100px' : '72px', height: isBroker ? '100px' : '72px', objectPosition: 'center top'}} />
-                        : <div className="rounded-full flex items-center justify-center text-white font-black text-xl transition-all duration-200 group-hover:scale-105"
-                            style={{width: isBroker ? '100px' : '72px', height: isBroker ? '100px' : '72px', background:'linear-gradient(135deg,#0C2749,#0043ff)', fontSize: isBroker ? '32px' : '24px'}}>
-                            {s.full_name?.[0]??'?'}
-                          </div>
-                      }
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white" style={{background: color}} />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-bold text-sm leading-tight" style={{color:'#0C2749', fontSize: isBroker ? '15px' : '13px'}}>{s.full_name ?? 'Staff'}</p>
-                      <p className="text-xs font-bold mt-0.5" style={{color}}>{roleLabel[s.role] ?? s.role}</p>
-                      {s.department && <p className="text-xs text-gray-400 mt-0.5">{s.department}</p>}
-                      {parqueName && (
-                        <span className="inline-block text-xs font-bold px-2 py-0.5 rounded-full mt-1" style={{background:'#EFF6FF', color:'#0043ff'}}>
-                          {parqueName}
-                        </span>
-                      )}
-                    </div>
+          {hasBothGroups ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {([
+                { label: 'Parque 1', members: staffP1, color: '#0043ff', bg: '#EFF6FF' },
+                { label: 'Parque 3', members: staffP3, color: '#ff1200', bg: '#FFF1F0' },
+              ] as const).map(({ label, members, color, bg }) => (
+                <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-2 h-2 rounded-full" style={{background: color}} />
+                    <h3 className="text-sm font-black" style={{color:'#0C2749'}}>{label}</h3>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{background: bg, color}}>{members.length}</span>
                   </div>
-                );
-              })}
+                  <div className="flex items-center gap-4 overflow-x-auto pb-2">
+                    {renderStaff(members)}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div className="flex items-center gap-4 overflow-x-auto pb-2 pt-2">
+                {renderStaff(staffAll)}
+              </div>
+            </div>
+          )}
         </section>
       )}
 

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Camera, Share2, MessageCircle, Image, FileText, Video, Download, ExternalLink, Megaphone } from 'lucide-react';
+import { Camera, Share2, MessageCircle, Image, FileText, Video, ExternalLink } from 'lucide-react';
 import SectionSearchBar from '@/components/shared/SectionSearchBar';
 
 const CATS = [
@@ -20,13 +20,6 @@ const PLANTILLAS = [
   { id:'6', cat:'nueva-imagen', title:'Banner Facebook portada', desc:'Imagen corporativa para portada', type:'JPG 820x312', canvaUrl:'#' },
   { id:'7', cat:'whatsapp', title:'Mensaje de seguimiento', desc:'Texto de contacto para clientes', type:'Texto', canvaUrl:'#' },
   { id:'8', cat:'fuentes', title:'Pack tipografia Gotham', desc:'Fuentes corporativas RE/MAX', type:'ZIP Fonts', canvaUrl:'#' },
-];
-const EVENTOS_FOTOS = [
-  { title: 'Fiesta fin de ano Grupo Parque', date: 'Dic 2025' },
-  { title: 'Retiro fin de ano Grupo Parque', date: 'Nov 2025' },
-  { title: 'Reunion mensual Nov 2025', date: 'Nov 2025' },
-  { title: 'Trimestral Oct 2025', date: 'Oct 2025' },
-  { title: 'Reunion mensual Sept 2025', date: 'Sept 2025' },
 ];
 
 export default function MarketingPage() {
@@ -114,30 +107,6 @@ export default function MarketingPage() {
               </div>
             );
           })}
-        </div>
-      </section>
-      <section>
-        <h2 className="text-xl font-black mb-5" style={{color:'#0C2749'}}>Imagenes de eventos</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {EVENTOS_FOTOS.map((ev, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group cursor-pointer">
-              <div className="h-36 flex items-center justify-center relative overflow-hidden" style={{background:'linear-gradient(135deg,#0C2749,#0043ff)'}}>
-                <Image className="w-10 h-10 text-white/20" />
-                <div className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <Download className="w-4 h-4 text-white" />
-                </div>
-              </div>
-              <div className="p-3">
-                <p className="text-xs font-bold leading-tight" style={{color:'#0C2749'}}>{ev.title}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{ev.date}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-8 bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
-          <Megaphone className="w-10 h-10 mx-auto mb-3" style={{color:'#0043ff'}} />
-          <h3 className="text-base font-black mb-1" style={{color:'#0C2749'}}>Mas contenido en camino</h3>
-          <p className="text-sm text-gray-400 max-w-sm mx-auto">El equipo de marketing sube plantillas y recursos oficiales. Volve seguido para ver las novedades.</p>
         </div>
       </section>
     </div>
