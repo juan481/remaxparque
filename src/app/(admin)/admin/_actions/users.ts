@@ -155,7 +155,6 @@ export async function updateUserProfile(userId: string, formData: FormData): Pro
     if (error) return { error: error.message };
 
     revalidatePath('/admin/usuarios');
-    revalidatePath('/staff');
     return { ok: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Error inesperado al guardar.' };

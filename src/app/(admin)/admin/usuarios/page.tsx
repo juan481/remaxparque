@@ -13,14 +13,13 @@ type Profile = {
 };
 
 export default async function UsuariosPage() {
-  // Admin only
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const adminCheck = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const { data: me } = await adminCheck.from('profiles').select('role').eq('id', user!.id).single();
-  if (me?.role !== 'admin') redirect('/admin');
+  if (!user) redirect('/login');
 
-  const admin = adminCheck;
+  const admin = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const { data: me } = await admin.from('profiles').select('role').eq('id', user.id).single();
+  if (me?.role !== 'admin') redirect('/admin');
 
   const { data: pending } = await admin
     .from('profiles').select('id,full_name,avatar_url,email,created_at')

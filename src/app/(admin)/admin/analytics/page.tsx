@@ -6,11 +6,11 @@ import { Users, Download, Activity, TrendingUp, BarChart3, ArrowUp } from 'lucid
 export default async function AnalyticsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const adminClient = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const { data: profile } = await adminClient.from('profiles').select('role').eq('id', user!.id).single();
-  if (profile?.role !== 'admin') redirect('/admin');
+  if (!user) redirect('/login');
 
-  const admin = adminClient;
+  const admin = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const { data: profile } = await admin.from('profiles').select('role').eq('id', user.id).single();
+  if (profile?.role !== 'admin') redirect('/admin');
   const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
   const thirtyDaysAgo = new Date(Date.now() - 30*24*60*60*1000).toISOString();
 
