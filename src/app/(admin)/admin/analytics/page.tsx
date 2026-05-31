@@ -1,8 +1,16 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 import { Users, Download, Activity, TrendingUp, BarChart3, ArrowUp } from 'lucide-react';
 
 export default async function AnalyticsPage() {
-  const admin = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const adminClient = createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const { data: profile } = await adminClient.from('profiles').select('role').eq('id', user!.id).single();
+  if (profile?.role !== 'admin') redirect('/admin');
+
+  const admin = adminClient;
   const sevenDaysAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
   const thirtyDaysAgo = new Date(Date.now() - 30*24*60*60*1000).toISOString();
 

@@ -29,7 +29,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <span className="ml-auto text-xs font-black px-2.5 py-1 rounded-full text-white capitalize" style={{background:'#ff1200'}}>{profile.role}</span>
         </div>
       </div>
-      <AdminNav />
+      <AdminNav role={profile.role} />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {children}
       </main>

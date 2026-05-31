@@ -124,6 +124,40 @@ export async function resetUserPassword(
   return { ok: true };
 }
 
+export async function changeUserRole(userId: string, newRole: string): Promise<Result> {
+  const validRoles = ['agent', 'staff', 'admin'];
+  if (!validRoles.includes(newRole)) return { error: 'Rol inválido.' };
+
+  const db = admin();
+  const { error } = await db.from('profiles').update({ role: newRole }).eq('id', userId);
+  if (error) return { error: error.message };
+
+  revalidatePath('/admin/usuarios');
+  return { ok: true };
+}
+
+export async function updateUserProfile(userId: string, formData: FormData): Promise<Result> {
+  const fullName  = (formData.get('full_name') as string | null)?.trim() ?? '';
+  const phone     = (formData.get('phone') as string | null)?.trim() || null;
+  const department= (formData.get('department') as string | null)?.trim() || null;
+  const role      = (formData.get('role') as string | null) ?? '';
+  const parque    = (formData.get('parque') as string | null) ?? '';
+  const avatarUrl = (formData.get('avatar_url') as string | null)?.trim() || null;
+
+  if (!fullName) return { error: 'El nombre no puede estar vacío.' };
+
+  const db = admin();
+  const update: Record<string, unknown> = { full_name: fullName, phone, department, role, parque };
+  if (avatarUrl) update.avatar_url = avatarUrl;
+
+  const { error } = await db.from('profiles').update(update).eq('id', userId);
+  if (error) return { error: error.message };
+
+  revalidatePath('/admin/usuarios');
+  revalidatePath('/staff');
+  return { ok: true };
+}
+
 export async function deleteUser(userId: string): Promise<Result> {
   const db = admin();
 

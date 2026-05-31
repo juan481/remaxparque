@@ -7,28 +7,33 @@ import {
   Calendar, BookOpen, Megaphone, Library, ImageIcon, Menu, X,
 } from 'lucide-react';
 
-const SECTIONS = [
-  { href: '/admin',            label: 'Resumen',    icon: LayoutDashboard, exact: true  },
-  { href: '/admin/usuarios',   label: 'Usuarios',   icon: Users,           exact: false },
-  { href: '/admin/cursos',     label: 'Academia',   icon: BookOpen,        exact: false },
-  { href: '/admin/marketing',  label: 'Marketing',  icon: Megaphone,       exact: false },
-  { href: '/admin/eventos',    label: 'Eventos',    icon: Calendar,        exact: false },
-  { href: '/admin/documentos', label: 'Documentos', icon: FileText,        exact: false },
-  { href: '/admin/novedades',  label: 'Novedades',  icon: Newspaper,       exact: false },
-  { href: '/admin/biblioteca', label: 'Biblioteca', icon: Library,         exact: false },
-  { href: '/admin/banner',     label: 'Banner',     icon: ImageIcon,       exact: false },
-  { href: '/admin/analytics',  label: 'Analytics',  icon: BarChart3,       exact: false },
+const ALL_SECTIONS = [
+  { href: '/admin',            label: 'Resumen',    icon: LayoutDashboard, exact: true,  adminOnly: false },
+  { href: '/admin/usuarios',   label: 'Usuarios',   icon: Users,           exact: false, adminOnly: true  },
+  { href: '/admin/cursos',     label: 'Academia',   icon: BookOpen,        exact: false, adminOnly: false },
+  { href: '/admin/marketing',  label: 'Marketing',  icon: Megaphone,       exact: false, adminOnly: false },
+  { href: '/admin/eventos',    label: 'Eventos',    icon: Calendar,        exact: false, adminOnly: false },
+  { href: '/admin/documentos', label: 'Documentos', icon: FileText,        exact: false, adminOnly: false },
+  { href: '/admin/novedades',  label: 'Novedades',  icon: Newspaper,       exact: false, adminOnly: false },
+  { href: '/admin/biblioteca', label: 'Biblioteca', icon: Library,         exact: false, adminOnly: false },
+  { href: '/admin/banner',     label: 'Banner',     icon: ImageIcon,       exact: false, adminOnly: false },
+  { href: '/admin/analytics',  label: 'Analytics',  icon: BarChart3,       exact: false, adminOnly: true  },
 ];
 
-export default function AdminNav() {
+interface Props { role: string }
+
+export default function AdminNav({ role }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const isAdmin = role === 'admin';
+
+  const SECTIONS = ALL_SECTIONS.filter(s => isAdmin || !s.adminOnly);
 
   return (
     <div style={{ background: '#fff1f1', borderBottom: '2px solid #fecaca' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
-        {/* Desktop xl+: single row, all items visible without overflow */}
+        {/* Desktop xl+: single row */}
         <div className="hidden xl:flex items-center gap-0">
           {SECTIONS.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
@@ -46,17 +51,15 @@ export default function AdminNav() {
           })}
         </div>
 
-        {/* Mobile/tablet (< xl): collapsible grid */}
+        {/* Mobile/tablet */}
         <div className="xl:hidden">
-          <button
-            onClick={() => setOpen(o => !o)}
+          <button onClick={() => setOpen(o => !o)}
             className="flex items-center gap-2 py-3 text-sm font-bold text-red-700 w-full">
             {open ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             {open ? 'Cerrar menú' : 'Secciones del admin'}
           </button>
-
           {open && (
-            <div className="grid grid-cols-5 sm:grid-cols-5 gap-1 pb-3">
+            <div className="grid grid-cols-5 gap-1 pb-3">
               {SECTIONS.map(({ href, label, icon: Icon, exact }) => {
                 const active = exact ? pathname === href : pathname.startsWith(href);
                 return (
