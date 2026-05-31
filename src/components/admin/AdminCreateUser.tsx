@@ -287,12 +287,17 @@ export function EditUserButton({ user }: { user: EditableUser }) {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true); setErr(null);
-    const fd = new FormData(e.currentTarget);
-    if (preview && preview !== user.avatar_url) fd.set('avatar_url', preview);
-    const result = await updateUserProfile(user.id, fd);
-    setBusy(false);
-    if ('error' in result) { setErr(result.error); return; }
-    close();
+    try {
+      const fd = new FormData(e.currentTarget);
+      if (preview) fd.set('avatar_url', preview);
+      const result = await updateUserProfile(user.id, fd);
+      setBusy(false);
+      if (result && 'error' in result) { setErr(result.error); return; }
+      close();
+    } catch (ex) {
+      setBusy(false);
+      setErr(ex instanceof Error ? ex.message : 'Error al guardar. Intentá de nuevo.');
+    }
   }
 
   return (
