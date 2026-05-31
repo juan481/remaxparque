@@ -193,7 +193,7 @@ async function main() {
             user_metadata: { full_name: nombre },
           });
           if (authError) throw new Error(authError.message);
-          userId = authData.user!.id;
+          userId = authData.user.id;
 
           await supabase.from('profiles').upsert({
             id: userId, full_name: nombre, email, role, parque,
@@ -201,8 +201,8 @@ async function main() {
           }, { onConflict: 'id' });
 
           // Agregar al mapa para evitar duplicados en la misma corrida
-          existingByEmail.set(email, authData.user!);
-          existingByName.set(nombre.toLowerCase(), authData.user!);
+          existingByEmail.set(email, authData.user);
+          existingByName.set(nombre.toLowerCase(), authData.user);
           created++;
         }
       } else {
