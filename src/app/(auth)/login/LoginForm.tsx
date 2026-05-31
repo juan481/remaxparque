@@ -1,6 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { loginAction } from './_actions';
 
 export default function LoginForm() {
@@ -109,6 +110,14 @@ export default function LoginForm() {
                   </button>
                 </div>
               </div>
+
+              {/* Turnstile — solo se muestra si hay site key configurada */}
+              {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+                <Turnstile
+                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  options={{ theme: 'light', language: 'es' }}
+                />
+              )}
 
               {error && (
                 <div className="px-4 py-3 rounded-xl text-sm font-medium text-red-700 bg-red-50 border border-red-100">

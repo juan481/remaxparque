@@ -21,11 +21,31 @@ function checkRateLimit(email: string): boolean {
   return true;
 }
 
+async function verifyTurnstile(token: string): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret) return true; // Si no está configurado, se omite
+  try {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret, response: token }),
+    });
+    const data = await res.json() as { success: boolean };
+    return data.success === true;
+  } catch { return false; }
+}
+
 export async function loginAction(formData: FormData): Promise<string | null> {
   const email = (formData.get('email') as string | null)?.trim() ?? '';
   const password = (formData.get('password') as string | null) ?? '';
+  const turnstileToken = (formData.get('cf-turnstile-response') as string | null) ?? '';
 
   if (!email || !password) return 'Por favor completá todos los campos.';
+
+  // Verificar Turnstile si está configurado
+  if (process.env.TURNSTILE_SECRET_KEY && !(await verifyTurnstile(turnstileToken))) {
+    return 'Verificación de seguridad fallida. Recargá la página e intentá de nuevo.';
+  }
 
   if (!checkRateLimit(email)) {
     return 'Demasiados intentos fallidos. Esperá 15 minutos antes de volver a intentar.';
