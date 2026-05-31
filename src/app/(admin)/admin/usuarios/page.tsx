@@ -138,7 +138,7 @@ export default async function UsuariosPage() {
                 )}
               </div>
               <div className="col-span-2 flex items-center justify-end gap-1.5">
-                <ResetPasswordButton userId={user.id} userName={user.full_name ?? 'Usuario'} />
+                <ResetPasswordButton userId={user.id} userName={user.full_name ?? 'Usuario'} userEmail={user.email ?? ''} />
                 <DeleteUserButton userId={user.id} userName={user.full_name ?? 'Usuario'} />
               </div>
             </div>

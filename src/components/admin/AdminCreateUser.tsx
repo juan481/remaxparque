@@ -115,7 +115,7 @@ export function CreateUserButton() {
 }
 
 // ── Reset Password Button (inline in user row) ────────────────
-export function ResetPasswordButton({ userId, userName }: { userId: string; userName: string }) {
+export function ResetPasswordButton({ userId, userName, userEmail }: { userId: string; userName: string; userEmail: string }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -128,7 +128,7 @@ export function ResetPasswordButton({ userId, userName }: { userId: string; user
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true); setErr(null);
-    const result = await resetUserPassword(userId, password);
+    const result = await resetUserPassword(userId, password, userEmail, userName);
     setBusy(false);
     if ('error' in result) { setErr(result.error); return; }
     setDone(true);

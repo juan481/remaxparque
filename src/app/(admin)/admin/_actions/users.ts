@@ -1,6 +1,10 @@
 'use server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 import { revalidatePath } from 'next/cache';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://academia.remax-parque.com.ar';
 
 function admin() {
   return createAdminClient(
@@ -63,7 +67,12 @@ export async function createUser(formData: FormData): Promise<Result> {
   return { ok: true };
 }
 
-export async function resetUserPassword(userId: string, newPassword: string): Promise<Result> {
+export async function resetUserPassword(
+  userId: string,
+  newPassword: string,
+  userEmail: string,
+  userName: string,
+): Promise<Result> {
   if (!newPassword || newPassword.length < 8) {
     return { error: 'La contraseña debe tener al menos 8 caracteres.' };
   }
@@ -72,8 +81,44 @@ export async function resetUserPassword(userId: string, newPassword: string): Pr
   const { error } = await db.auth.admin.updateUserById(userId, { password: newPassword });
   if (error) return { error: error.message };
 
-  // Force password change on next login
   await db.from('profiles').update({ password_changed: false }).eq('id', userId);
+
+  // Notificar al usuario por email
+  if (userEmail) {
+    const nombre = userName.split(' ')[0] ?? userName;
+    await resend.emails.send({
+      from: 'Academia RE/MAX Parque <academia@remax-parque.com.ar>',
+      to: userEmail,
+      subject: 'Tu contraseña fue reiniciada — Academia RE/MAX Parque',
+      text: `Hola ${nombre},\n\nTu contraseña fue reiniciada por el administrador.\n\nNueva contraseña temporal: ${newPassword}\n\nAl ingresar se te pedirá que la cambies.\n\n${SITE_URL}/login`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#f7f5ee;">
+          <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.07);">
+            <div style="background:linear-gradient(135deg,#0C2749,#000e35);padding:28px 32px;text-align:center;">
+              <p style="margin:0;color:#fff;font-size:20px;font-weight:900;letter-spacing:2px;">ACADEMIA</p>
+              <p style="margin:4px 0 0;color:rgba(255,255,255,0.6);font-size:13px;">RE/MAX Parque</p>
+            </div>
+            <div style="padding:32px;">
+              <p style="margin:0 0 16px;color:#0C2749;font-size:20px;font-weight:900;">Hola, ${nombre}</p>
+              <p style="color:#6B7280;font-size:15px;line-height:1.6;">El administrador reinició tu contraseña de acceso a Academia RE/MAX Parque.</p>
+              <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:20px;margin:24px 0;">
+                <p style="margin:0 0 10px;color:#0C2749;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Nueva contraseña temporal</p>
+                <p style="margin:0;color:#0C2749;font-size:20px;font-weight:700;font-family:monospace;letter-spacing:2px;">${newPassword}</p>
+              </div>
+              <p style="color:#D97706;font-size:13px;background:#FFFBEB;padding:12px 16px;border-radius:8px;border-left:3px solid #D97706;">
+                <strong>Al ingresar</strong> se te pedirá que establezcas una nueva contraseña personal.
+              </p>
+              <div style="margin-top:24px;">
+                <a href="${SITE_URL}/login"
+                   style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#0043ff,#0C2749);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:12px;">
+                  Ingresar ahora →
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>`,
+    });
+  }
 
   revalidatePath('/admin/usuarios');
   return { ok: true };
